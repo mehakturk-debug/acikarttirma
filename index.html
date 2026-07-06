@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Açık Artırma 11 | Kadro Kurma Yarışması</title>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, onValue, update, get, child, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDH6iLioC4R0f-jT1AYlXV9iijxiCs0FdI",
+        authDomain: "scouthink-live.firebaseapp.com",
+        databaseURL: "https://scouthink-live-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "scouthink-live",
+        storageBucket: "scouthink-live.firebasestorage.app",
+        messagingSenderId: "302068502138",
+        appId: "1:302068502138:web:741c126b937873d670f5c3",
+        measurementId: "G-RHMQ0W044Z"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.db = getDatabase(app);
+    window.dbRefs = { ref, set, onValue, update, get, child, remove, runTransaction };
+</script>
+<script>
+    // Sabit oyuncu havuzu: sofifa_players.csv'den dönüştürülen 294 futbolcu (tüm bilgileri eksiksiz).
+    // Artık master_players Firebase'den çekilmiyor; bu liste doğrudan kullanılıyor.
+    window.PLAYERS_DATA = {"c-ronaldo-dos-santos-aveiro": {"tam_isim": "Cristiano Ronaldo", "su_anki_takim": "Al Nassr", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 40, "reyting": 85, "potansiyel": 85, "numericPrice": 0.0, "ucret_raw": "€58K", "player_url": "https://sofifa.com/player/20801/c-ronaldo-dos-santos-aveiro/260042/", "player_id": "c-ronaldo-dos-santos-aveiro"}, "mikel-merino-zazon": {"tam_isim": "Mikel Merino", "su_anki_takim": "Arsenal", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "SNT", "MDO"], "yas": 29, "reyting": 83, "potansiyel": 83, "numericPrice": 35.5, "ucret_raw": "€160K", "player_url": "https://sofifa.com/player/225193/mikel-merino-zazon/260042/", "player_id": "mikel-merino-zazon"}, "folarin-balogun": {"tam_isim": "F. Balogun", "su_anki_takim": "AS Monaco", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 23, "reyting": 79, "potansiyel": 83, "numericPrice": 25.5, "ucret_raw": "€35K", "player_url": "https://sofifa.com/player/247463/folarin-balogun/260042/", "player_id": "folarin-balogun"}, "bernardo-mota-carvalho-e-silva": {"tam_isim": "Bernardo Silva", "su_anki_takim": "Manchester City", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "SĞK"], "yas": 30, "reyting": 83, "potansiyel": 83, "numericPrice": 34.5, "ucret_raw": "€150K", "player_url": "https://sofifa.com/player/218667/bernardo-mota-carvalho-e-silva/260042/", "player_id": "bernardo-mota-carvalho-e-silva"}, "vitor-machado-ferreira": {"tam_isim": "Vitinha", "su_anki_takim": "Paris Saint-Germain", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 25, "reyting": 90, "potansiyel": 92, "numericPrice": 149.0, "ucret_raw": "€185K", "player_url": "https://sofifa.com/player/255253/vitor-machado-ferreira/260042/", "player_id": "vitor-machado-ferreira"}, "lamine-yamal-nasraoui-ebana": {"tam_isim": "Lamine Yamal", "su_anki_takim": "FC Barcelona", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SĞO"], "yas": 17, "reyting": 89, "potansiyel": 95, "numericPrice": 147.0, "ucret_raw": "€115K", "player_url": "https://sofifa.com/player/277643/lamine-yamal-nasraoui-ebana/260042/", "player_id": "lamine-yamal-nasraoui-ebana"}, "renato-palma-veiga": {"tam_isim": "Renato Veiga", "su_anki_takim": "Villarreal CF", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 21, "reyting": 78, "potansiyel": 83, "numericPrice": 19.5, "ucret_raw": "€27K", "player_url": "https://sofifa.com/player/273906/renato-palma-veiga/260042/", "player_id": "renato-palma-veiga"}, "bruno-miguel-borges-fernandes": {"tam_isim": "Bruno Fernandes", "su_anki_takim": "Manchester United", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 30, "reyting": 88, "potansiyel": 88, "numericPrice": 88.0, "ucret_raw": "€185K", "player_url": "https://sofifa.com/player/212198/bruno-miguel-borges-fernandes/260042/", "player_id": "bruno-miguel-borges-fernandes"}, "rodrigo-hernandez-cascante": {"tam_isim": "Rodri", "su_anki_takim": "Manchester City", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 29, "reyting": 89, "potansiyel": 89, "numericPrice": 88.0, "ucret_raw": "€250K", "player_url": "https://sofifa.com/player/231866/rodrigo-hernandez-cascante/260042/", "player_id": "rodrigo-hernandez-cascante"}, "nuno-alexandre-tavares-mendes": {"tam_isim": "Nuno Mendes", "su_anki_takim": "Paris Saint-Germain", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 23, "reyting": 88, "potansiyel": 91, "numericPrice": 115.5, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/252145/nuno-alexandre-tavares-mendes/260042/", "player_id": "nuno-alexandre-tavares-mendes"}, "goncalo-matias-ramos": {"tam_isim": "Gonçalo Ramos", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 24, "reyting": 80, "potansiyel": 84, "numericPrice": 30.5, "ucret_raw": "€79K", "player_url": "https://sofifa.com/player/256903/goncalo-matias-ramos/260042/", "player_id": "goncalo-matias-ramos"}, "lionel-messi": {"tam_isim": "L. Messi", "su_anki_takim": "Inter Miami", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SNT", "SĞK"], "yas": 38, "reyting": 86, "potansiyel": 86, "numericPrice": 22.0, "ucret_raw": "€16K", "player_url": "https://sofifa.com/player/158023/lionel-messi/260042/", "player_id": "lionel-messi"}, "gilberto-mora": {"tam_isim": "G. Mora", "su_anki_takim": "Serbest (Meksika)", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLK", "MO"], "yas": 16, "reyting": 73, "potansiyel": 87, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/79399/gilberto-mora/260042/", "player_id": "gilberto-mora"}, "joao-pedro-goncalves-neves": {"tam_isim": "João Neves", "su_anki_takim": "Paris Saint-Germain", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 20, "reyting": 88, "potansiyel": 93, "numericPrice": 135.0, "ucret_raw": "€120K", "player_url": "https://sofifa.com/player/272834/joao-pedro-goncalves-neves/260042/", "player_id": "joao-pedro-goncalves-neves"}, "rafael-da-conceicao-leao": {"tam_isim": "Rafael Leão", "su_anki_takim": "AC Milan", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO", "SNT"], "yas": 26, "reyting": 84, "potansiyel": 85, "numericPrice": 49.5, "ucret_raw": "€79K", "player_url": "https://sofifa.com/player/241721/rafael-da-conceicao-leao/260042/", "player_id": "rafael-da-conceicao-leao"}, "borja-iglesias-quintas": {"tam_isim": "Borja Iglesias", "su_anki_takim": "RC Celta", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 32, "reyting": 80, "potansiyel": 80, "numericPrice": 17.0, "ucret_raw": "€40K", "player_url": "https://sofifa.com/player/224179/borja-iglesias-quintas/260042/", "player_id": "borja-iglesias-quintas"}, "ferran-torres-garcia": {"tam_isim": "Ferran Torres", "su_anki_takim": "FC Barcelona", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SLK", "SLO"], "yas": 25, "reyting": 84, "potansiyel": 86, "numericPrice": 53.5, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/241461/ferran-torres-garcia/260042/", "player_id": "ferran-torres-garcia"}, "josimar-jose-evora-dias": {"tam_isim": "Vózinha", "su_anki_takim": "Serbest (Cape Verde Adaları)", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 39, "reyting": 66, "potansiyel": 66, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/217141/josimar-jose-evora-dias/260042/", "player_id": "josimar-jose-evora-dias"}, "diogo-meireles-costa": {"tam_isim": "Diogo Costa", "su_anki_takim": "FC Porto", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 25, "reyting": 84, "potansiyel": 89, "numericPrice": 49.5, "ucret_raw": "€14K", "player_url": "https://sofifa.com/player/234577/diogo-meireles-costa/260042/", "player_id": "diogo-meireles-costa"}, "erling-haaland": {"tam_isim": "E. Haaland", "su_anki_takim": "Manchester City", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 24, "reyting": 91, "potansiyel": 93, "numericPrice": 172.5, "ucret_raw": "€390K", "player_url": "https://sofifa.com/player/239085/erling-haaland/260042/", "player_id": "erling-haaland"}, "pedro-gonzalez-lopez": {"tam_isim": "Pedri", "su_anki_takim": "FC Barcelona", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 22, "reyting": 90, "potansiyel": 93, "numericPrice": 165.0, "ucret_raw": "€180K", "player_url": "https://sofifa.com/player/251854/pedro-gonzalez-lopez/260042/", "player_id": "pedro-gonzalez-lopez"}, "emersonn-correia-da-silva": {"tam_isim": "Emersonn", "su_anki_takim": "Toulouse FC", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 20, "reyting": 72, "potansiyel": 81, "numericPrice": 5.0, "ucret_raw": "€14K", "player_url": "https://sofifa.com/player/76803/emersonn-correia-da-silva/260042/", "player_id": "emersonn-correia-da-silva"}, "rodrigo-mora-de-carvalho": {"tam_isim": "Rodrigo Mora", "su_anki_takim": "FC Porto", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLK", "MO", "SNT"], "yas": 18, "reyting": 77, "potansiyel": 89, "numericPrice": 24.5, "ucret_raw": "€10K", "player_url": "https://sofifa.com/player/72997/rodrigo-mora-de-carvalho/260042/", "player_id": "rodrigo-mora-de-carvalho"}, "joao-felix-sequeira": {"tam_isim": "João Félix", "su_anki_takim": "Al Nassr", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SNT", "SLO"], "yas": 25, "reyting": 81, "potansiyel": 84, "numericPrice": 34.0, "ucret_raw": "€51K", "player_url": "https://sofifa.com/player/242444/joao-felix-sequeira/260042/", "player_id": "joao-felix-sequeira"}, "pau-cubarsi-paredes": {"tam_isim": "Pau Cubarsí", "su_anki_takim": "FC Barcelona", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 18, "reyting": 83, "potansiyel": 89, "numericPrice": 48.0, "ucret_raw": "€70K", "player_url": "https://sofifa.com/player/278046/pau-cubarsi-paredes/260042/", "player_id": "pau-cubarsi-paredes"}, "antonio-nusa": {"tam_isim": "A. Nusa", "su_anki_takim": "RB Leipzig", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO", "MOO"], "yas": 20, "reyting": 78, "potansiyel": 88, "numericPrice": 31.0, "ucret_raw": "€40K", "player_url": "https://sofifa.com/player/262863/antonio-nusa/260042/", "player_id": "antonio-nusa"}, "mikel-oyarzabal-ugarte": {"tam_isim": "Oyarzabal", "su_anki_takim": "Real Sociedad", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 28, "reyting": 83, "potansiyel": 83, "numericPrice": 37.0, "ucret_raw": "€65K", "player_url": "https://sofifa.com/player/230142/mikel-oyarzabal-ugarte/260042/", "player_id": "mikel-oyarzabal-ugarte"}, "pedro-antonio-porro-sauceda": {"tam_isim": "Pedro Porro", "su_anki_takim": "Tottenham Hotspur", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 25, "reyting": 82, "potansiyel": 85, "numericPrice": 37.0, "ucret_raw": "€105K", "player_url": "https://sofifa.com/player/243576/pedro-antonio-porro-sauceda/260042/", "player_id": "pedro-antonio-porro-sauceda"}, "ismael-saibari": {"tam_isim": "I. Saibari", "su_anki_takim": "PSV", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "SNT"], "yas": 24, "reyting": 80, "potansiyel": 85, "numericPrice": 32.0, "ucret_raw": "€25K", "player_url": "https://sofifa.com/player/259480/ismael-saibari/260042/", "player_id": "ismael-saibari"}, "jude-bellingham": {"tam_isim": "J. Bellingham", "su_anki_takim": "Real Madrid", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "SLO"], "yas": 22, "reyting": 89, "potansiyel": 93, "numericPrice": 150.5, "ucret_raw": "€300K", "player_url": "https://sofifa.com/player/252371/jude-bellingham/260042/", "player_id": "jude-bellingham"}, "julian-quinones": {"tam_isim": "J. Quiñones", "su_anki_takim": "Al Qadsiah FC", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SLK", "SLO"], "yas": 28, "reyting": 81, "potansiyel": 81, "numericPrice": 26.5, "ucret_raw": "€53K", "player_url": "https://sofifa.com/player/234579/julian-quinones/260042/", "player_id": "julian-quinones"}, "ayyoub-bouaddi": {"tam_isim": "A. Bouaddi", "su_anki_takim": "Lille OSC", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 17, "reyting": 78, "potansiyel": 86, "numericPrice": 27.0, "ucret_raw": "€15K", "player_url": "https://sofifa.com/player/278901/ayyoub-bouaddi/260042/", "player_id": "ayyoub-bouaddi"}, "neymar-da-silva-santos-jr": {"tam_isim": "Neymar Jr", "su_anki_takim": "Serbest (Brezilya)", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLK", "SNT", "MO"], "yas": 33, "reyting": 83, "potansiyel": 83, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/190871/neymar-da-silva-santos-jr/260042/", "player_id": "neymar-da-silva-santos-jr"}, "kylian-mbappe": {"tam_isim": "K. Mbappé", "su_anki_takim": "Real Madrid", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SLK", "SLO"], "yas": 26, "reyting": 91, "potansiyel": 92, "numericPrice": 157.0, "ucret_raw": "€610K", "player_url": "https://sofifa.com/player/231747/kylian-mbappe/260042/", "player_id": "kylian-mbappe"}, "warren-zaire-emery": {"tam_isim": "W. Zaïre-Emery", "su_anki_takim": "Paris Saint-Germain", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "SĞB", "MOO"], "yas": 19, "reyting": 83, "potansiyel": 89, "numericPrice": 55.0, "ucret_raw": "€73K", "player_url": "https://sofifa.com/player/270673/warren-zaire-emery/260042/", "player_id": "warren-zaire-emery"}, "mateus-goncalo-espanha-fernandes": {"tam_isim": "Mateus Fernandes", "su_anki_takim": "West Ham United", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO", "MDO"], "yas": 20, "reyting": 79, "potansiyel": 85, "numericPrice": 27.0, "ucret_raw": "€52K", "player_url": "https://sofifa.com/player/270857/mateus-goncalo-espanha-fernandes/260042/", "player_id": "mateus-goncalo-espanha-fernandes"}, "pedro-lomba-neto": {"tam_isim": "Pedro Neto", "su_anki_takim": "Chelsea", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLO", "SĞK"], "yas": 25, "reyting": 82, "potansiyel": 83, "numericPrice": 36.5, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/238616/pedro-lomba-neto/260042/", "player_id": "pedro-lomba-neto"}, "francisco-trincao": {"tam_isim": "Trincão", "su_anki_takim": "Sporting CP", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "SĞK", "SNT"], "yas": 25, "reyting": 83, "potansiyel": 85, "numericPrice": 45.5, "ucret_raw": "€30K", "player_url": "https://sofifa.com/player/244778/francisco-trincao/260042/", "player_id": "francisco-trincao"}, "nicholas-williams-arthuer": {"tam_isim": "Nico Williams", "su_anki_takim": "Athletic Club", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO"], "yas": 22, "reyting": 85, "potansiyel": 88, "numericPrice": 75.0, "ucret_raw": "€69K", "player_url": "https://sofifa.com/player/256516/nicholas-williams-arthuer/260042/", "player_id": "nicholas-williams-arthuer"}, "alejandro-baena-rodriguez": {"tam_isim": "Álex Baena", "su_anki_takim": "Atlético Madrid", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MO", "SLK"], "yas": 23, "reyting": 82, "potansiyel": 87, "numericPrice": 46.0, "ucret_raw": "€69K", "player_url": "https://sofifa.com/player/257279/alejandro-baena-rodriguez/260042/", "player_id": "alejandro-baena-rodriguez"}, "francisco-f-da-conceicao": {"tam_isim": "Francisco Conceição", "su_anki_takim": "Juventus", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "SĞK", "MO"], "yas": 22, "reyting": 79, "potansiyel": 86, "numericPrice": 35.5, "ucret_raw": "€95K", "player_url": "https://sofifa.com/player/261050/francisco-f-da-conceicao/260042/", "player_id": "francisco-f-da-conceicao"}, "yan-diomande": {"tam_isim": "Y. Diomande", "su_anki_takim": "RB Leipzig", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SLK", "SLO", "SĞO"], "yas": 18, "reyting": 81, "potansiyel": 89, "numericPrice": 54.5, "ucret_raw": "€45K", "player_url": "https://sofifa.com/player/78012/yan-diomande/260042/", "player_id": "yan-diomande"}, "michael-olise": {"tam_isim": "M. Olise", "su_anki_takim": "FC Bayern München", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞK", "MOO"], "yas": 23, "reyting": 89, "potansiyel": 91, "numericPrice": 134.0, "ucret_raw": "€120K", "player_url": "https://sofifa.com/player/247827/michael-olise/260042/", "player_id": "michael-olise"}, "lucas-bergvall": {"tam_isim": "L. Bergvall", "su_anki_takim": "Tottenham Hotspur", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO", "MDO"], "yas": 19, "reyting": 78, "potansiyel": 87, "numericPrice": 30.0, "ucret_raw": "€61K", "player_url": "https://sofifa.com/player/272926/lucas-bergvall/260042/", "player_id": "lucas-bergvall"}, "marc-cucurella-saseta": {"tam_isim": "Marc Cucurella", "su_anki_takim": "Chelsea", "mevki": "Defans", "mevki_kodlari": ["SLB", "MO"], "yas": 26, "reyting": 85, "potansiyel": 85, "numericPrice": 53.5, "ucret_raw": "€170K", "player_url": "https://sofifa.com/player/239231/marc-cucurella-saseta/260042/", "player_id": "marc-cucurella-saseta"}, "elliot-anderson": {"tam_isim": "E. Anderson", "su_anki_takim": "Nottingham Forest", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 22, "reyting": 82, "potansiyel": 86, "numericPrice": 40.5, "ucret_raw": "€90K", "player_url": "https://sofifa.com/player/254243/elliot-anderson/260042/", "player_id": "elliot-anderson"}, "andrey-n-dos-santos": {"tam_isim": "Andrey Santos", "su_anki_takim": "Chelsea", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 21, "reyting": 80, "potansiyel": 87, "numericPrice": 42.5, "ucret_raw": "€86K", "player_url": "https://sofifa.com/player/273018/andrey-n-dos-santos/260042/", "player_id": "andrey-n-dos-santos"}, "rayan-vitor-simplicio-rocha": {"tam_isim": "Rayan", "su_anki_takim": "AFC Bournemouth", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SNT", "SĞK"], "yas": 18, "reyting": 78, "potansiyel": 88, "numericPrice": 29.5, "ucret_raw": "€45K", "player_url": "https://sofifa.com/player/83494/rayan-vitor-simplicio-rocha/260042/", "player_id": "rayan-vitor-simplicio-rocha"}, "ruben-diogo-da-silva-neves": {"tam_isim": "Rúben Neves", "su_anki_takim": "Al Hilal", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "STP"], "yas": 28, "reyting": 85, "potansiyel": 85, "numericPrice": 47.5, "ucret_raw": "€74K", "player_url": "https://sofifa.com/player/224293/ruben-diogo-da-silva-neves/260042/", "player_id": "ruben-diogo-da-silva-neves"}, "sandro-tonali": {"tam_isim": "S. Tonali", "su_anki_takim": "Newcastle United", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 25, "reyting": 85, "potansiyel": 87, "numericPrice": 60.5, "ucret_raw": "€160K", "player_url": "https://sofifa.com/player/241096/sandro-tonali/260042/", "player_id": "sandro-tonali"}, "sidny-lopes-cabral": {"tam_isim": "Sidny Cabral", "su_anki_takim": "SL Benfica", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SLB", "SĞO"], "yas": 22, "reyting": 68, "potansiyel": 75, "numericPrice": 2.3, "ucret_raw": "€7K", "player_url": "https://sofifa.com/player/70289/sidny-lopes-cabral/260042/", "player_id": "sidny-lopes-cabral"}, "konstantinos-karetsas": {"tam_isim": "K. Karetsas", "su_anki_takim": "KRC Genk", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞK", "MO"], "yas": 17, "reyting": 74, "potansiyel": 86, "numericPrice": 9.5, "ucret_raw": "€12K", "player_url": "https://sofifa.com/player/70497/konstantinos-karetsas/260042/", "player_id": "konstantinos-karetsas"}, "james-rodriguez": {"tam_isim": "J. Rodríguez", "su_anki_takim": "Serbest (Kolombiya)", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "MO"], "yas": 33, "reyting": 80, "potansiyel": 80, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/198710/james-rodriguez/260042/", "player_id": "james-rodriguez"}, "alexander-nubel": {"tam_isim": "A. Nübel", "su_anki_takim": "VfB Stuttgart [Kiralık]", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 28, "reyting": 80, "potansiyel": 81, "numericPrice": 16.5, "ucret_raw": "€42K", "player_url": "https://sofifa.com/player/223885/alexander-nubel/260042/", "player_id": "alexander-nubel"}, "bradley-barcola": {"tam_isim": "B. Barcola", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SĞK", "SLO"], "yas": 22, "reyting": 84, "potansiyel": 88, "numericPrice": 61.5, "ucret_raw": "€110K", "player_url": "https://sofifa.com/player/264652/bradley-barcola/260042/", "player_id": "bradley-barcola"}, "jeremy-doku": {"tam_isim": "J. Doku", "su_anki_takim": "Manchester City", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO", "SĞK"], "yas": 23, "reyting": 83, "potansiyel": 86, "numericPrice": 49.5, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/246420/jeremy-doku/260042/", "player_id": "jeremy-doku"}, "bukayo-saka": {"tam_isim": "B. Saka", "su_anki_takim": "Arsenal", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SĞO"], "yas": 23, "reyting": 87, "potansiyel": 89, "numericPrice": 103.5, "ucret_raw": "€210K", "player_url": "https://sofifa.com/player/246669/bukayo-saka/260042/", "player_id": "bukayo-saka"}, "enzo-fernandez": {"tam_isim": "E. Fernández", "su_anki_takim": "Chelsea", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 24, "reyting": 85, "potansiyel": 88, "numericPrice": 73.0, "ucret_raw": "€150K", "player_url": "https://sofifa.com/player/247090/enzo-fernandez/260042/", "player_id": "enzo-fernandez"}, "martin-zubimendi-ibanez": {"tam_isim": "Zubimendi", "su_anki_takim": "Arsenal", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 26, "reyting": 85, "potansiyel": 87, "numericPrice": 60.0, "ucret_raw": "€180K", "player_url": "https://sofifa.com/player/248148/martin-zubimendi-ibanez/260042/", "player_id": "martin-zubimendi-ibanez"}, "goncalo-bernardo-inacio": {"tam_isim": "Gonçalo Inácio", "su_anki_takim": "Sporting CP", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 23, "reyting": 81, "potansiyel": 86, "numericPrice": 35.0, "ucret_raw": "€22K", "player_url": "https://sofifa.com/player/257179/goncalo-bernardo-inacio/260042/", "player_id": "goncalo-bernardo-inacio"}, "joao-pedro-cavaco-cancelo": {"tam_isim": "João Cancelo", "su_anki_takim": "FC Barcelona [Kiralık]", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SLB", "SĞO"], "yas": 31, "reyting": 84, "potansiyel": 84, "numericPrice": 30.5, "ucret_raw": "€68K", "player_url": "https://sofifa.com/player/210514/joao-pedro-cavaco-cancelo/260042/", "player_id": "joao-pedro-cavaco-cancelo"}, "abdullah-al-khaibari": {"tam_isim": "A. Al Khaibari", "su_anki_takim": "Al Nassr", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "STP"], "yas": 28, "reyting": 70, "potansiyel": 70, "numericPrice": 1.4, "ucret_raw": "€21K", "player_url": "https://sofifa.com/player/237721/abdullah-al-khaibari/260042/", "player_id": "abdullah-al-khaibari"}, "said-el-mala": {"tam_isim": "S. El Mala", "su_anki_takim": "1. FC Köln", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MOO", "SNT", "SLK"], "yas": 18, "reyting": 76, "potansiyel": 87, "numericPrice": 16.0, "ucret_raw": "€16K", "player_url": "https://sofifa.com/player/71178/said-el-mala/260042/", "player_id": "said-el-mala"}, "victor-munoz-villanueva": {"tam_isim": "Víctor Muñoz", "su_anki_takim": "CA Osasuna", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO", "SĞK"], "yas": 21, "reyting": 78, "potansiyel": 86, "numericPrice": 31.5, "ucret_raw": "€28K", "player_url": "https://sofifa.com/player/76042/victor-munoz-villanueva/260042/", "player_id": "victor-munoz-villanueva"}, "aymeric-laporte": {"tam_isim": "A. Laporte", "su_anki_takim": "Athletic Club", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 31, "reyting": 82, "potansiyel": 82, "numericPrice": 21.0, "ucret_raw": "€56K", "player_url": "https://sofifa.com/player/212218/aymeric-laporte/260042/", "player_id": "aymeric-laporte"}, "fabian-ruiz-pena": {"tam_isim": "Fabián Ruiz", "su_anki_takim": "Paris Saint-Germain", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 29, "reyting": 85, "potansiyel": 85, "numericPrice": 52.5, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/226271/fabian-ruiz-pena/260042/", "player_id": "fabian-ruiz-pena"}, "gabriel-dos-s-magalhaes": {"tam_isim": "Gabriel", "su_anki_takim": "Arsenal", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 27, "reyting": 89, "potansiyel": 90, "numericPrice": 104.0, "ucret_raw": "€250K", "player_url": "https://sofifa.com/player/232580/gabriel-dos-s-magalhaes/260042/", "player_id": "gabriel-dos-s-magalhaes"}, "malik-tillman": {"tam_isim": "M. Tillman", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "SLK"], "yas": 23, "reyting": 79, "potansiyel": 84, "numericPrice": 26.5, "ucret_raw": "€65K", "player_url": "https://sofifa.com/player/256853/malik-tillman/260042/", "player_id": "malik-tillman"}, "alex-scott": {"tam_isim": "A. Scott", "su_anki_takim": "AFC Bournemouth", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "MOO"], "yas": 21, "reyting": 80, "potansiyel": 86, "numericPrice": 31.0, "ucret_raw": "€55K", "player_url": "https://sofifa.com/player/261299/alex-scott/260042/", "player_id": "alex-scott"}, "eli-junior-kroupi": {"tam_isim": "E. Kroupi", "su_anki_takim": "AFC Bournemouth", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO"], "yas": 19, "reyting": 78, "potansiyel": 86, "numericPrice": 30.5, "ucret_raw": "€53K", "player_url": "https://sofifa.com/player/277909/eli-junior-kroupi/260042/", "player_id": "eli-junior-kroupi"}, "ibrahim-mbaye": {"tam_isim": "I. Mbaye", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SLK", "SĞO"], "yas": 17, "reyting": 74, "potansiyel": 85, "numericPrice": 8.5, "ucret_raw": "€32K", "player_url": "https://sofifa.com/player/74449/ibrahim-mbaye/260042/", "player_id": "ibrahim-mbaye"}, "leandro-trossard": {"tam_isim": "L. Trossard", "su_anki_takim": "Arsenal", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO"], "yas": 30, "reyting": 83, "potansiyel": 83, "numericPrice": 35.0, "ucret_raw": "€175K", "player_url": "https://sofifa.com/player/207421/leandro-trossard/260042/", "player_id": "leandro-trossard"}, "antonee-robinson": {"tam_isim": "A. Robinson", "su_anki_takim": "Fulham FC", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 27, "reyting": 81, "potansiyel": 81, "numericPrice": 25.0, "ucret_raw": "€90K", "player_url": "https://sofifa.com/player/229348/antonee-robinson/260042/", "player_id": "antonee-robinson"}, "unai-simon-mendibil": {"tam_isim": "Unai Simón", "su_anki_takim": "Athletic Club", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 28, "reyting": 84, "potansiyel": 85, "numericPrice": 33.5, "ucret_raw": "€44K", "player_url": "https://sofifa.com/player/230869/unai-simon-mendibil/260042/", "player_id": "unai-simon-mendibil"}, "ruben-santos-gato-alves-dias": {"tam_isim": "Rúben Dias", "su_anki_takim": "Manchester City", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 28, "reyting": 87, "potansiyel": 87, "numericPrice": 68.5, "ucret_raw": "€210K", "player_url": "https://sofifa.com/player/239818/ruben-santos-gato-alves-dias/260042/", "player_id": "ruben-santos-gato-alves-dias"}, "khvicha-kvaratskhelia": {"tam_isim": "K. Kvaratskhelia", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SĞK", "SLO"], "yas": 24, "reyting": 88, "potansiyel": 91, "numericPrice": 125.0, "ucret_raw": "€150K", "player_url": "https://sofifa.com/player/247635/khvicha-kvaratskhelia/260042/", "player_id": "khvicha-kvaratskhelia"}, "azzedine-ounahi": {"tam_isim": "A. Ounahi", "su_anki_takim": "Girona FC", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO", "MDO"], "yas": 25, "reyting": 79, "potansiyel": 82, "numericPrice": 23.0, "ucret_raw": "€35K", "player_url": "https://sofifa.com/player/255125/azzedine-ounahi/260042/", "player_id": "azzedine-ounahi"}, "joan-garcia-pons": {"tam_isim": "Joan García", "su_anki_takim": "FC Barcelona", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 24, "reyting": 86, "potansiyel": 89, "numericPrice": 72.5, "ucret_raw": "€71K", "player_url": "https://sofifa.com/player/259532/joan-garcia-pons/260042/", "player_id": "joan-garcia-pons"}, "tomas-lemos-araujo": {"tam_isim": "Tomás Araújo", "su_anki_takim": "SL Benfica", "mevki": "Defans", "mevki_kodlari": ["STP", "SĞB"], "yas": 23, "reyting": 78, "potansiyel": 86, "numericPrice": 29.0, "ucret_raw": "€17K", "player_url": "https://sofifa.com/player/266096/tomas-lemos-araujo/260042/", "player_id": "tomas-lemos-araujo"}, "luka-vuskovic": {"tam_isim": "L. Vušković", "su_anki_takim": "Hamburger SV [Kiralık]", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 18, "reyting": 78, "potansiyel": 88, "numericPrice": 27.5, "ucret_raw": "€53K", "player_url": "https://sofifa.com/player/275192/luka-vuskovic/260042/", "player_id": "luka-vuskovic"}, "geovany-tcherno-quenda": {"tam_isim": "Geovany Quenda", "su_anki_takim": "Sporting CP", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLO", "MOO", "SĞK"], "yas": 18, "reyting": 76, "potansiyel": 88, "numericPrice": 17.5, "ucret_raw": "€12K", "player_url": "https://sofifa.com/player/279044/geovany-tcherno-quenda/260042/", "player_id": "geovany-tcherno-quenda"}, "anan-khalaili": {"tam_isim": "A. Khalaili", "su_anki_takim": "Union Saint-Gilloise", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞB", "SĞK"], "yas": 20, "reyting": 77, "potansiyel": 86, "numericPrice": 23.0, "ucret_raw": "€18K", "player_url": "https://sofifa.com/player/70888/anan-khalaili/260042/", "player_id": "anan-khalaili"}, "orjan-nyland": {"tam_isim": "Ø. Nyland", "su_anki_takim": "Sevilla FC", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 34, "reyting": 74, "potansiyel": 74, "numericPrice": 0.725, "ucret_raw": "€17K", "player_url": "https://sofifa.com/player/185427/orjan-nyland/260042/", "player_id": "orjan-nyland"}, "harry-kane": {"tam_isim": "H. Kane", "su_anki_takim": "FC Bayern München", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 31, "reyting": 90, "potansiyel": 90, "numericPrice": 101.0, "ucret_raw": "€170K", "player_url": "https://sofifa.com/player/202126/harry-kane/260042/", "player_id": "harry-kane"}, "marcus-rashford": {"tam_isim": "M. Rashford", "su_anki_takim": "FC Barcelona [Kiralık]", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO", "SNT"], "yas": 27, "reyting": 82, "potansiyel": 82, "numericPrice": 32.5, "ucret_raw": "€110K", "player_url": "https://sofifa.com/player/231677/marcus-rashford/260042/", "player_id": "marcus-rashford"}, "anthony-gordon": {"tam_isim": "A. Gordon", "su_anki_takim": "Newcastle United", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SNT", "SĞK", "SLO"], "yas": 24, "reyting": 82, "potansiyel": 85, "numericPrice": 41.5, "ucret_raw": "€125K", "player_url": "https://sofifa.com/player/242964/anthony-gordon/260042/", "player_id": "anthony-gordon"}, "felix-nmecha": {"tam_isim": "F. Nmecha", "su_anki_takim": "Borussia Dortmund", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 24, "reyting": 84, "potansiyel": 86, "numericPrice": 54.5, "ucret_raw": "€63K", "player_url": "https://sofifa.com/player/246863/felix-nmecha/260042/", "player_id": "felix-nmecha"}, "fabio-daniel-soares-silva": {"tam_isim": "Fábio Silva", "su_anki_takim": "Borussia Dortmund", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO", "SLK"], "yas": 22, "reyting": 79, "potansiyel": 85, "numericPrice": 28.5, "ucret_raw": "€47K", "player_url": "https://sofifa.com/player/252037/fabio-daniel-soares-silva/260042/", "player_id": "fabio-daniel-soares-silva"}, "jakub-kaminski": {"tam_isim": "J. Kamiński", "su_anki_takim": "1. FC Köln [Kiralık]", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MOO", "SLK", "SLB"], "yas": 23, "reyting": 77, "potansiyel": 82, "numericPrice": 16.0, "ucret_raw": "€37K", "player_url": "https://sofifa.com/player/252495/jakub-kaminski/260042/", "player_id": "jakub-kaminski"}, "warleson-lisboa-oliveira": {"tam_isim": "Warleson", "su_anki_takim": "Cercle Brugge KSV", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 28, "reyting": 70, "potansiyel": 70, "numericPrice": 1.1, "ucret_raw": "€6K", "player_url": "https://sofifa.com/player/255754/warleson-lisboa-oliveira/260042/", "player_id": "warleson-lisboa-oliveira"}, "marc-pubill-pages": {"tam_isim": "Pubill", "su_anki_takim": "Atlético Madrid", "mevki": "Defans", "mevki_kodlari": ["STP", "SĞB", "SĞO"], "yas": 22, "reyting": 80, "potansiyel": 87, "numericPrice": 40.0, "ucret_raw": "€56K", "player_url": "https://sofifa.com/player/266039/marc-pubill-pages/260042/", "player_id": "marc-pubill-pages"}, "gustavo-filipe-azevedo-sa": {"tam_isim": "Gustavo Sá", "su_anki_takim": "Famalicão", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 20, "reyting": 75, "potansiyel": 86, "numericPrice": 12.5, "ucret_raw": "€10K", "player_url": "https://sofifa.com/player/271057/gustavo-filipe-azevedo-sa/260042/", "player_id": "gustavo-filipe-azevedo-sa"}, "desire-doue": {"tam_isim": "D. Doué", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SLK", "MO", "SĞO"], "yas": 20, "reyting": 86, "potansiyel": 91, "numericPrice": 101.0, "ucret_raw": "€110K", "player_url": "https://sofifa.com/player/271421/desire-doue/260042/", "player_id": "desire-doue"}, "nico-oreilly": {"tam_isim": "N. O'Reilly", "su_anki_takim": "Manchester City", "mevki": "Defans", "mevki_kodlari": ["SLB", "MO"], "yas": 20, "reyting": 81, "potansiyel": 86, "numericPrice": 35.5, "ucret_raw": "€86K", "player_url": "https://sofifa.com/player/277427/nico-oreilly/260042/", "player_id": "nico-oreilly"}, "lucas-lopes-beraldo": {"tam_isim": "Lucas Beraldo", "su_anki_takim": "Paris Saint-Germain", "mevki": "Defans", "mevki_kodlari": ["STP", "MDO", "MO"], "yas": 21, "reyting": 78, "potansiyel": 83, "numericPrice": 19.5, "ucret_raw": "€49K", "player_url": "https://sofifa.com/player/279709/lucas-lopes-beraldo/260042/", "player_id": "lucas-lopes-beraldo"}, "rio-ngumoha": {"tam_isim": "R. Ngumoha", "su_anki_takim": "Liverpool", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLK"], "yas": 16, "reyting": 72, "potansiyel": 88, "numericPrice": 6.0, "ucret_raw": "€29K", "player_url": "https://sofifa.com/player/80376/rio-ngumoha/260042/", "player_id": "rio-ngumoha"}, "jordan-henderson": {"tam_isim": "J. Henderson", "su_anki_takim": "Brentford", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 35, "reyting": 79, "potansiyel": 79, "numericPrice": 4.9, "ucret_raw": "€56K", "player_url": "https://sofifa.com/player/183711/jordan-henderson/260042/", "player_id": "jordan-henderson"}, "dan-burn": {"tam_isim": "D. Burn", "su_anki_takim": "Newcastle United", "mevki": "Defans", "mevki_kodlari": ["STP", "SLB"], "yas": 33, "reyting": 80, "potansiyel": 80, "numericPrice": 10.0, "ucret_raw": "€115K", "player_url": "https://sofifa.com/player/198032/dan-burn/260042/", "player_id": "dan-burn"}, "alejandro-grimaldo-garcia": {"tam_isim": "Grimaldo", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLB", "MOO", "SLK"], "yas": 29, "reyting": 85, "potansiyel": 85, "numericPrice": 53.0, "ucret_raw": "€120K", "player_url": "https://sofifa.com/player/210035/alejandro-grimaldo-garcia/260042/", "player_id": "alejandro-grimaldo-garcia"}, "martin-odegaard": {"tam_isim": "M. Ødegaard", "su_anki_takim": "Arsenal", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO"], "yas": 26, "reyting": 86, "potansiyel": 87, "numericPrice": 79.5, "ucret_raw": "€200K", "player_url": "https://sofifa.com/player/222665/martin-odegaard/260042/", "player_id": "martin-odegaard"}, "ousmane-dembele": {"tam_isim": "O. Dembélé", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SĞK", "MOO"], "yas": 28, "reyting": 90, "potansiyel": 90, "numericPrice": 122.5, "ucret_raw": "€220K", "player_url": "https://sofifa.com/player/231443/ousmane-dembele/260042/", "player_id": "ousmane-dembele"}, "eduardo-gabriel-aquino-cossa": {"tam_isim": "Pepê", "su_anki_takim": "FC Porto", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SĞO", "MOO"], "yas": 28, "reyting": 77, "potansiyel": 77, "numericPrice": 10.5, "ucret_raw": "€16K", "player_url": "https://sofifa.com/player/238896/eduardo-gabriel-aquino-cossa/260042/", "player_id": "eduardo-gabriel-aquino-cossa"}, "aurelien-tchouameni": {"tam_isim": "A. Tchouaméni", "su_anki_takim": "Real Madrid", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "STP"], "yas": 25, "reyting": 84, "potansiyel": 87, "numericPrice": 50.5, "ucret_raw": "€200K", "player_url": "https://sofifa.com/player/241637/aurelien-tchouameni/260042/", "player_id": "aurelien-tchouameni"}, "logan-costa": {"tam_isim": "L. Costa", "su_anki_takim": "Villarreal CF", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 24, "reyting": 77, "potansiyel": 83, "numericPrice": 15.0, "ucret_raw": "€30K", "player_url": "https://sofifa.com/player/243923/logan-costa/260042/", "player_id": "logan-costa"}, "daniel-olmo-carvajal": {"tam_isim": "Dani Olmo", "su_anki_takim": "FC Barcelona", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 27, "reyting": 84, "potansiyel": 84, "numericPrice": 45.0, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/244260/daniel-olmo-carvajal/260042/", "player_id": "daniel-olmo-carvajal"}, "dogan-alemdar": {"tam_isim": "D. Alemdar", "su_anki_takim": "Medipol Başakşehir FK", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 22, "reyting": 68, "potansiyel": 75, "numericPrice": 2.1, "ucret_raw": "€4K", "player_url": "https://sofifa.com/player/245822/dogan-alemdar/260042/", "player_id": "dogan-alemdar"}, "roger-ibanez-da-silva": {"tam_isim": "Ibañez", "su_anki_takim": "Al Ahli SFC", "mevki": "Defans", "mevki_kodlari": ["STP", "SĞB"], "yas": 26, "reyting": 82, "potansiyel": 84, "numericPrice": 33.5, "ucret_raw": "€54K", "player_url": "https://sofifa.com/player/247257/roger-ibanez-da-silva/260042/", "player_id": "roger-ibanez-da-silva"}, "eduardo-camavinga": {"tam_isim": "E. Camavinga", "su_anki_takim": "Real Madrid", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "SLB"], "yas": 22, "reyting": 81, "potansiyel": 85, "numericPrice": 37.5, "ucret_raw": "€145K", "player_url": "https://sofifa.com/player/248243/eduardo-camavinga/260042/", "player_id": "eduardo-camavinga"}, "chris-richards": {"tam_isim": "C. Richards", "su_anki_takim": "Crystal Palace", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 25, "reyting": 79, "potansiyel": 81, "numericPrice": 19.5, "ucret_raw": "€76K", "player_url": "https://sofifa.com/player/250954/chris-richards/260042/", "player_id": "chris-richards"}, "matheus-luiz-nunes": {"tam_isim": "Matheus Nunes", "su_anki_takim": "Manchester City", "mevki": "Defans", "mevki_kodlari": ["SĞB", "MO", "SĞO"], "yas": 26, "reyting": 82, "potansiyel": 83, "numericPrice": 33.0, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/253124/matheus-luiz-nunes/260042/", "player_id": "matheus-luiz-nunes"}, "willian-pacho": {"tam_isim": "W. Pacho", "su_anki_takim": "Paris Saint-Germain", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 23, "reyting": 88, "potansiyel": 90, "numericPrice": 105.5, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/256196/willian-pacho/260042/", "player_id": "willian-pacho"}, "piero-hincapie": {"tam_isim": "P. Hincapié", "su_anki_takim": "Arsenal [Kiralık]", "mevki": "Defans", "mevki_kodlari": ["SLB", "STP"], "yas": 23, "reyting": 83, "potansiyel": 87, "numericPrice": 48.5, "ucret_raw": "€81K", "player_url": "https://sofifa.com/player/256197/piero-hincapie/260042/", "player_id": "piero-hincapie"}, "erik-lira": {"tam_isim": "E. Lira", "su_anki_takim": "Serbest (Meksika)", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "STP", "MO"], "yas": 25, "reyting": 75, "potansiyel": 80, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/257784/erik-lira/260042/", "player_id": "erik-lira"}, "jordan-bos": {"tam_isim": "J. Bos", "su_anki_takim": "Feyenoord", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLK", "SLO"], "yas": 22, "reyting": 74, "potansiyel": 82, "numericPrice": 9.0, "ucret_raw": "€12K", "player_url": "https://sofifa.com/player/260521/jordan-bos/260042/", "player_id": "jordan-bos"}, "pablo-martin-paez-gavira": {"tam_isim": "Gavi", "su_anki_takim": "FC Barcelona", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 20, "reyting": 83, "potansiyel": 87, "numericPrice": 51.0, "ucret_raw": "€85K", "player_url": "https://sofifa.com/player/264240/pablo-martin-paez-gavira/260042/", "player_id": "pablo-martin-paez-gavira"}, "diego-manuel-j-da-silva-moreira": {"tam_isim": "Diego Moreira", "su_anki_takim": "RC Strasbourg Alsace", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLO", "SLB", "SĞB"], "yas": 20, "reyting": 78, "potansiyel": 84, "numericPrice": 22.0, "ucret_raw": "€38K", "player_url": "https://sofifa.com/player/270039/diego-manuel-j-da-silva-moreira/260042/", "player_id": "diego-manuel-j-da-silva-moreira"}, "marc-casado-torras": {"tam_isim": "Marc Casadó", "su_anki_takim": "FC Barcelona", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 21, "reyting": 78, "potansiyel": 82, "numericPrice": 18.5, "ucret_raw": "€54K", "player_url": "https://sofifa.com/player/272600/marc-casado-torras/260042/", "player_id": "marc-casado-torras"}, "nicolas-paz-martinez": {"tam_isim": "Nico Paz", "su_anki_takim": "Como", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "SNT", "MO"], "yas": 20, "reyting": 82, "potansiyel": 89, "numericPrice": 60.5, "ucret_raw": "€82K", "player_url": "https://sofifa.com/player/277846/nicolas-paz-martinez/260042/", "player_id": "nicolas-paz-martinez"}, "bazoumana-toure": {"tam_isim": "B. Touré", "su_anki_takim": "TSG 1899 Hoffenheim", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MOO", "SLK"], "yas": 19, "reyting": 77, "potansiyel": 86, "numericPrice": 23.0, "ucret_raw": "€24K", "player_url": "https://sofifa.com/player/71418/bazoumana-toure/260042/", "player_id": "bazoumana-toure"}, "christian-kofane": {"tam_isim": "C. Kofane", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 18, "reyting": 76, "potansiyel": 86, "numericPrice": 16.0, "ucret_raw": "€43K", "player_url": "https://sofifa.com/player/76416/christian-kofane/260042/", "player_id": "christian-kofane"}, "bright-ede": {"tam_isim": "B. Ede", "su_anki_takim": "Motor Lublin", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 18, "reyting": 62, "potansiyel": 78, "numericPrice": 0.95, "ucret_raw": "€950", "player_url": "https://sofifa.com/player/76409/bright-ede/260042/", "player_id": "bright-ede"}, "estevao-willian-almeida": {"tam_isim": "Estêvão", "su_anki_takim": "Chelsea", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞK"], "yas": 18, "reyting": 79, "potansiyel": 89, "numericPrice": 37.0, "ucret_raw": "€71K", "player_url": "https://sofifa.com/player/76687/estevao-willian-almeida/260042/", "player_id": "estevao-willian-almeida"}, "lennart-karl": {"tam_isim": "L. Karl", "su_anki_takim": "FC Bayern München", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "SNT"], "yas": 17, "reyting": 75, "potansiyel": 88, "numericPrice": 13.0, "ucret_raw": "€25K", "player_url": "https://sofifa.com/player/78063/lennart-karl/260042/", "player_id": "lennart-karl"}, "mathis-albert": {"tam_isim": "M. Albert", "su_anki_takim": "Borussia Dortmund", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MOO", "SĞO", "SLK"], "yas": 16, "reyting": 66, "potansiyel": 88, "numericPrice": 2.7, "ucret_raw": "€7K", "player_url": "https://sofifa.com/player/80873/mathis-albert/260042/", "player_id": "mathis-albert"}, "romelu-lukaku": {"tam_isim": "R. Lukaku", "su_anki_takim": "Napoli", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 32, "reyting": 83, "potansiyel": 83, "numericPrice": 29.5, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/192505/romelu-lukaku/260042/", "player_id": "romelu-lukaku"}, "kevin-de-bruyne": {"tam_isim": "K. De Bruyne", "su_anki_takim": "Napoli", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO"], "yas": 34, "reyting": 87, "potansiyel": 87, "numericPrice": 36.5, "ucret_raw": "€175K", "player_url": "https://sofifa.com/player/192985/kevin-de-bruyne/260042/", "player_id": "kevin-de-bruyne"}, "raul-jimenez": {"tam_isim": "R. Jiménez", "su_anki_takim": "Fulham FC", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 34, "reyting": 78, "potansiyel": 78, "numericPrice": 7.0, "ucret_raw": "€85K", "player_url": "https://sofifa.com/player/204838/raul-jimenez/260042/", "player_id": "raul-jimenez"}, "marcos-llorente-moreno": {"tam_isim": "Marcos Llorente", "su_anki_takim": "Atlético Madrid", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO", "MO"], "yas": 30, "reyting": 85, "potansiyel": 85, "numericPrice": 46.5, "ucret_raw": "€105K", "player_url": "https://sofifa.com/player/226161/marcos-llorente-moreno/260042/", "player_id": "marcos-llorente-moreno"}, "nelson-cabral-semedo": {"tam_isim": "Nélson Semedo", "su_anki_takim": "Fenerbahçe SK", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 31, "reyting": 78, "potansiyel": 78, "numericPrice": 10.0, "ucret_raw": "€50K", "player_url": "https://sofifa.com/player/227928/nelson-cabral-semedo/260042/", "player_id": "nelson-cabral-semedo"}, "frenkie-de-jong": {"tam_isim": "F. de Jong", "su_anki_takim": "FC Barcelona", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 28, "reyting": 87, "potansiyel": 87, "numericPrice": 79.5, "ucret_raw": "€170K", "player_url": "https://sofifa.com/player/228702/frenkie-de-jong/260042/", "player_id": "frenkie-de-jong"}, "joao-maria-palhinha-goncalves": {"tam_isim": "Palhinha", "su_anki_takim": "Tottenham Hotspur [Kiralık]", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 29, "reyting": 82, "potansiyel": 82, "numericPrice": 26.0, "ucret_raw": "€75K", "player_url": "https://sofifa.com/player/229391/joao-maria-palhinha-goncalves/260042/", "player_id": "joao-maria-palhinha-goncalves"}, "tyler-adams": {"tam_isim": "T. Adams", "su_anki_takim": "AFC Bournemouth", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 26, "reyting": 79, "potansiyel": 81, "numericPrice": 19.5, "ucret_raw": "€72K", "player_url": "https://sofifa.com/player/232999/tyler-adams/260042/", "player_id": "tyler-adams"}, "achraf-hakimi": {"tam_isim": "A. Hakimi", "su_anki_takim": "Paris Saint-Germain", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 26, "reyting": 89, "potansiyel": 90, "numericPrice": 111.0, "ucret_raw": "€170K", "player_url": "https://sofifa.com/player/235212/achraf-hakimi/260042/", "player_id": "achraf-hakimi"}, "vinicius-jose-de-oliveira-junior": {"tam_isim": "Vini Jr.", "su_anki_takim": "Real Madrid", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SNT", "SLO"], "yas": 24, "reyting": 89, "potansiyel": 92, "numericPrice": 141.0, "ucret_raw": "€320K", "player_url": "https://sofifa.com/player/238794/vinicius-jose-de-oliveira-junior/260042/", "player_id": "vinicius-jose-de-oliveira-junior"}, "rodrygo-silva-de-goes": {"tam_isim": "Rodrygo", "su_anki_takim": "Real Madrid", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SĞK", "SNT", "SLO"], "yas": 24, "reyting": 84, "potansiyel": 87, "numericPrice": 57.5, "ucret_raw": "€210K", "player_url": "https://sofifa.com/player/243812/rodrygo-silva-de-goes/260042/", "player_id": "rodrygo-silva-de-goes"}, "julian-alvarez": {"tam_isim": "J. Alvarez", "su_anki_takim": "Atlético Madrid", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO"], "yas": 25, "reyting": 86, "potansiyel": 89, "numericPrice": 91.0, "ucret_raw": "€115K", "player_url": "https://sofifa.com/player/246191/julian-alvarez/260042/", "player_id": "julian-alvarez"}, "angelo-stiller": {"tam_isim": "A. Stiller", "su_anki_takim": "VfB Stuttgart", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 24, "reyting": 83, "potansiyel": 87, "numericPrice": 47.5, "ucret_raw": "€47K", "player_url": "https://sofifa.com/player/250959/angelo-stiller/260042/", "player_id": "angelo-stiller"}, "ricardo-pepi": {"tam_isim": "R. Pepi", "su_anki_takim": "PSV", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 22, "reyting": 76, "potansiyel": 84, "numericPrice": 17.0, "ucret_raw": "€20K", "player_url": "https://sofifa.com/player/251223/ricardo-pepi/260042/", "player_id": "ricardo-pepi"}, "charles-de-ketelaere": {"tam_isim": "C. De Ketelaere", "su_anki_takim": "Atalanta", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SNT", "MO"], "yas": 24, "reyting": 82, "potansiyel": 86, "numericPrice": 43.5, "ucret_raw": "€72K", "player_url": "https://sofifa.com/player/251470/charles-de-ketelaere/260042/", "player_id": "charles-de-ketelaere"}, "josko-gvardiol": {"tam_isim": "J. Gvardiol", "su_anki_takim": "Manchester City", "mevki": "Defans", "mevki_kodlari": ["STP", "SLB", "SLO"], "yas": 23, "reyting": 85, "potansiyel": 88, "numericPrice": 66.0, "ucret_raw": "€145K", "player_url": "https://sofifa.com/player/251517/josko-gvardiol/260042/", "player_id": "josko-gvardiol"}, "rayan-cherki": {"tam_isim": "R. Cherki", "su_anki_takim": "Manchester City", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SĞO", "MOO"], "yas": 21, "reyting": 84, "potansiyel": 88, "numericPrice": 61.5, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/251570/rayan-cherki/260042/", "player_id": "rayan-cherki"}, "sergino-dest": {"tam_isim": "S. Dest", "su_anki_takim": "PSV", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SLB", "SĞO"], "yas": 24, "reyting": 79, "potansiyel": 83, "numericPrice": 23.5, "ucret_raw": "€22K", "player_url": "https://sofifa.com/player/251804/sergino-dest/260042/", "player_id": "sergino-dest"}, "joao-pedro-junqueira-de-jesus": {"tam_isim": "João Pedro", "su_anki_takim": "Chelsea", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO"], "yas": 23, "reyting": 82, "potansiyel": 86, "numericPrice": 44.0, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/252042/joao-pedro-junqueira-de-jesus/260042/", "player_id": "joao-pedro-junqueira-de-jesus"}, "florian-wirtz": {"tam_isim": "F. Wirtz", "su_anki_takim": "Liverpool", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLO", "MO"], "yas": 22, "reyting": 87, "potansiyel": 91, "numericPrice": 116.5, "ucret_raw": "€160K", "player_url": "https://sofifa.com/player/256630/florian-wirtz/260042/", "player_id": "florian-wirtz"}, "alan-varela": {"tam_isim": "A. Varela", "su_anki_takim": "FC Porto", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 23, "reyting": 80, "potansiyel": 85, "numericPrice": 29.0, "ucret_raw": "€15K", "player_url": "https://sofifa.com/player/260599/alan-varela/260042/", "player_id": "alan-varela"}, "alejandro-balde-martinez": {"tam_isim": "Balde", "su_anki_takim": "FC Barcelona", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 21, "reyting": 83, "potansiyel": 87, "numericPrice": 49.5, "ucret_raw": "€80K", "player_url": "https://sofifa.com/player/263578/alejandro-balde-martinez/260042/", "player_id": "alejandro-balde-martinez"}, "micky-van-de-ven": {"tam_isim": "M. van de Ven", "su_anki_takim": "Tottenham Hotspur", "mevki": "Defans", "mevki_kodlari": ["STP", "SLB"], "yas": 24, "reyting": 82, "potansiyel": 85, "numericPrice": 37.0, "ucret_raw": "€95K", "player_url": "https://sofifa.com/player/264453/micky-van-de-ven/260042/", "player_id": "micky-van-de-ven"}, "abdul-fatawu": {"tam_isim": "A. Fatawu", "su_anki_takim": "Leicester City", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞK"], "yas": 21, "reyting": 76, "potansiyel": 83, "numericPrice": 15.0, "ucret_raw": "€31K", "player_url": "https://sofifa.com/player/267680/abdul-fatawu/260042/", "player_id": "abdul-fatawu"}, "alvaro-fernandez-carreras": {"tam_isim": "Álvaro Carreras", "su_anki_takim": "Real Madrid", "mevki": "Defans", "mevki_kodlari": ["SLB", "STP", "SLO"], "yas": 22, "reyting": 81, "potansiyel": 87, "numericPrice": 38.5, "ucret_raw": "€140K", "player_url": "https://sofifa.com/player/268889/alvaro-fernandez-carreras/260042/", "player_id": "alvaro-fernandez-carreras"}, "dario-osorio": {"tam_isim": "D. Osorio", "su_anki_takim": "FC Midtjylland", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞK", "MOO"], "yas": 21, "reyting": 74, "potansiyel": 82, "numericPrice": 9.5, "ucret_raw": "€18K", "player_url": "https://sofifa.com/player/278012/dario-osorio/260042/", "player_id": "dario-osorio"}, "mikel-jauregizar-alboniga": {"tam_isim": "Jauregizar", "su_anki_takim": "Athletic Club", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 21, "reyting": 80, "potansiyel": 86, "numericPrice": 33.5, "ucret_raw": "€36K", "player_url": "https://sofifa.com/player/279604/mikel-jauregizar-alboniga/260042/", "player_id": "mikel-jauregizar-alboniga"}, "giovanni-reyna": {"tam_isim": "G. Reyna", "su_anki_takim": "Borussia Mönchengladbach", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLO", "SĞO", "MO"], "yas": 22, "reyting": 73, "potansiyel": 78, "numericPrice": 4.7, "ucret_raw": "€19K", "player_url": "https://sofifa.com/player/245541/giovanni-reyna/260042/", "player_id": "giovanni-reyna"}, "dusan-vlahovic": {"tam_isim": "D. Vlahović", "su_anki_takim": "Juventus", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 25, "reyting": 81, "potansiyel": 84, "numericPrice": 34.5, "ucret_raw": "€125K", "player_url": "https://sofifa.com/player/246430/dusan-vlahovic/260042/", "player_id": "dusan-vlahovic"}, "nico-schlotterbeck": {"tam_isim": "N. Schlotterbeck", "su_anki_takim": "Borussia Dortmund", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 25, "reyting": 86, "potansiyel": 88, "numericPrice": 75.5, "ucret_raw": "€78K", "player_url": "https://sofifa.com/player/247819/nico-schlotterbeck/260042/", "player_id": "nico-schlotterbeck"}, "bruno-guimaraes-moura": {"tam_isim": "Bruno Guimarães", "su_anki_takim": "Newcastle United", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 27, "reyting": 86, "potansiyel": 86, "numericPrice": 72.0, "ucret_raw": "€190K", "player_url": "https://sofifa.com/player/247851/bruno-guimaraes-moura/260042/", "player_id": "bruno-guimaraes-moura"}, "karim-adeyemi": {"tam_isim": "K. Adeyemi", "su_anki_takim": "Borussia Dortmund", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLK", "MOO", "SĞK"], "yas": 23, "reyting": 82, "potansiyel": 86, "numericPrice": 43.5, "ucret_raw": "€52K", "player_url": "https://sofifa.com/player/251852/karim-adeyemi/260042/", "player_id": "karim-adeyemi"}, "crysencio-summerville": {"tam_isim": "C. Summerville", "su_anki_takim": "West Ham United", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLK"], "yas": 23, "reyting": 78, "potansiyel": 83, "numericPrice": 21.0, "ucret_raw": "€56K", "player_url": "https://sofifa.com/player/251954/crysencio-summerville/260042/", "player_id": "crysencio-summerville"}, "nick-woltemade": {"tam_isim": "N. Woltemade", "su_anki_takim": "Newcastle United", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MO"], "yas": 23, "reyting": 80, "potansiyel": 85, "numericPrice": 32.0, "ucret_raw": "€110K", "player_url": "https://sofifa.com/player/254022/nick-woltemade/260042/", "player_id": "nick-woltemade"}, "maximilian-beier": {"tam_isim": "M. Beier", "su_anki_takim": "Borussia Dortmund", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO", "SLO"], "yas": 22, "reyting": 80, "potansiyel": 84, "numericPrice": 31.0, "ucret_raw": "€50K", "player_url": "https://sofifa.com/player/254117/maximilian-beier/260042/", "player_id": "maximilian-beier"}, "sven-mijnans": {"tam_isim": "S. Mijnans", "su_anki_takim": "AZ Alkmaar", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 25, "reyting": 76, "potansiyel": 79, "numericPrice": 10.0, "ucret_raw": "€19K", "player_url": "https://sofifa.com/player/254789/sven-mijnans/260042/", "player_id": "sven-mijnans"}, "christos-tzolis": {"tam_isim": "C. Tzolis", "su_anki_takim": "Club Brugge KV", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLK"], "yas": 23, "reyting": 81, "potansiyel": 87, "numericPrice": 40.5, "ucret_raw": "€36K", "player_url": "https://sofifa.com/player/256948/christos-tzolis/260042/", "player_id": "christos-tzolis"}, "yan-bueno-couto": {"tam_isim": "Yan Couto", "su_anki_takim": "Borussia Dortmund", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 23, "reyting": 77, "potansiyel": 81, "numericPrice": 14.0, "ucret_raw": "€34K", "player_url": "https://sofifa.com/player/259075/yan-bueno-couto/260042/", "player_id": "yan-bueno-couto"}, "mario-stroeykens": {"tam_isim": "M. Stroeykens", "su_anki_takim": "RSC Anderlecht", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO", "MDO"], "yas": 20, "reyting": 74, "potansiyel": 86, "numericPrice": 10.0, "ucret_raw": "€19K", "player_url": "https://sofifa.com/player/260162/mario-stroeykens/260042/", "player_id": "mario-stroeykens"}, "benjamin-sesko": {"tam_isim": "B. Šeško", "su_anki_takim": "Manchester United", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 22, "reyting": 80, "potansiyel": 87, "numericPrice": 43.0, "ucret_raw": "€84K", "player_url": "https://sofifa.com/player/260592/benjamin-sesko/260042/", "player_id": "benjamin-sesko"}, "andreas-schjelderup": {"tam_isim": "A. Schjelderup", "su_anki_takim": "SL Benfica", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO"], "yas": 21, "reyting": 77, "potansiyel": 86, "numericPrice": 23.5, "ucret_raw": "€16K", "player_url": "https://sofifa.com/player/260952/andreas-schjelderup/260042/", "player_id": "andreas-schjelderup"}, "castello-lukeba": {"tam_isim": "C. Lukeba", "su_anki_takim": "RB Leipzig", "mevki": "Defans", "mevki_kodlari": ["STP", "SLB", "MO"], "yas": 22, "reyting": 81, "potansiyel": 87, "numericPrice": 37.5, "ucret_raw": "€52K", "player_url": "https://sofifa.com/player/262138/castello-lukeba/260042/", "player_id": "castello-lukeba"}, "alberto-moleiro-gonzalez": {"tam_isim": "Moleiro", "su_anki_takim": "Villarreal CF", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MOO", "SLK"], "yas": 21, "reyting": 82, "potansiyel": 87, "numericPrice": 47.0, "ucret_raw": "€39K", "player_url": "https://sofifa.com/player/264388/alberto-moleiro-gonzalez/260042/", "player_id": "alberto-moleiro-gonzalez"}, "abdessamad-ezzalzouli": {"tam_isim": "Abde", "su_anki_takim": "Real Betis Balompié", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO"], "yas": 23, "reyting": 80, "potansiyel": 84, "numericPrice": 30.0, "ucret_raw": "€33K", "player_url": "https://sofifa.com/player/264432/abdessamad-ezzalzouli/260042/", "player_id": "abdessamad-ezzalzouli"}, "nicolo-tresoldi": {"tam_isim": "N. Tresoldi", "su_anki_takim": "Club Brugge KV", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 20, "reyting": 74, "potansiyel": 88, "numericPrice": 10.0, "ucret_raw": "€21K", "player_url": "https://sofifa.com/player/266895/nicolo-tresoldi/260042/", "player_id": "nicolo-tresoldi"}, "brajan-gruda": {"tam_isim": "B. Gruda", "su_anki_takim": "RB Leipzig [Kiralık]", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "MO"], "yas": 21, "reyting": 75, "potansiyel": 85, "numericPrice": 12.5, "ucret_raw": "€51K", "player_url": "https://sofifa.com/player/272612/brajan-gruda/260042/", "player_id": "brajan-gruda"}, "danilo-santos-de-oliveira": {"tam_isim": "Danilo Santos", "su_anki_takim": "Serbest (Brezilya)", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 24, "reyting": 76, "potansiyel": 80, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/273106/danilo-santos-de-oliveira/260042/", "player_id": "danilo-santos-de-oliveira"}, "ibrahim-maza": {"tam_isim": "I. Maza", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 19, "reyting": 79, "potansiyel": 87, "numericPrice": 38.0, "ucret_raw": "€52K", "player_url": "https://sofifa.com/player/275029/ibrahim-maza/260042/", "player_id": "ibrahim-maza"}, "matias-fernandez-pardo": {"tam_isim": "M. Fernandez-Pardo", "su_anki_takim": "Lille OSC", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SĞO", "SNT", "SLK"], "yas": 20, "reyting": 76, "potansiyel": 84, "numericPrice": 16.5, "ucret_raw": "€20K", "player_url": "https://sofifa.com/player/276048/matias-fernandez-pardo/260042/", "player_id": "matias-fernandez-pardo"}, "fermin-lopez-marin": {"tam_isim": "Fermín", "su_anki_takim": "FC Barcelona", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "SNT"], "yas": 22, "reyting": 83, "potansiyel": 87, "numericPrice": 53.0, "ucret_raw": "€100K", "player_url": "https://sofifa.com/player/277179/fermin-lopez-marin/260042/", "player_id": "fermin-lopez-marin"}, "murillo-costa-dos-santos": {"tam_isim": "Murillo", "su_anki_takim": "Nottingham Forest", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 22, "reyting": 82, "potansiyel": 86, "numericPrice": 40.0, "ucret_raw": "€90K", "player_url": "https://sofifa.com/player/278016/murillo-costa-dos-santos/260042/", "player_id": "murillo-costa-dos-santos"}, "dean-huijsen": {"tam_isim": "D. Huijsen", "su_anki_takim": "Real Madrid", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 20, "reyting": 81, "potansiyel": 88, "numericPrice": 47.5, "ucret_raw": "€120K", "player_url": "https://sofifa.com/player/278349/dean-huijsen/260042/", "player_id": "dean-huijsen"}, "francesco-camarda": {"tam_isim": "F. Camarda", "su_anki_takim": "Lecce [Kiralık]", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 17, "reyting": 65, "potansiyel": 87, "numericPrice": 2.3, "ucret_raw": "€7K", "player_url": "https://sofifa.com/player/279202/francesco-camarda/260042/", "player_id": "francesco-camarda"}, "kees-smit": {"tam_isim": "K. Smit", "su_anki_takim": "AZ Alkmaar", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "MDO"], "yas": 19, "reyting": 74, "potansiyel": 88, "numericPrice": 10.0, "ucret_raw": "€12K", "player_url": "https://sofifa.com/player/71532/kees-smit/260042/", "player_id": "kees-smit"}, "raul-rangel": {"tam_isim": "R. Rangel", "su_anki_takim": "Serbest (Meksika)", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 25, "reyting": 76, "potansiyel": 80, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/73325/raul-rangel/260042/", "player_id": "raul-rangel"}, "basar-onal": {"tam_isim": "B. Önal", "su_anki_takim": "NEC Nijmegen", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SĞO", "SLK"], "yas": 20, "reyting": 72, "potansiyel": 81, "numericPrice": 5.0, "ucret_raw": "€7K", "player_url": "https://sofifa.com/player/73355/basar-onal/260042/", "player_id": "basar-onal"}, "orlando-gill": {"tam_isim": "O. Gill", "su_anki_takim": "San Lorenzo de Almagro", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 25, "reyting": 67, "potansiyel": 73, "numericPrice": 1.3, "ucret_raw": "€4K", "player_url": "https://sofifa.com/player/75260/orlando-gill/260042/", "player_id": "orlando-gill"}, "toni-fruk": {"tam_isim": "T. Fruk", "su_anki_takim": "Serbest (Hırvatistan)", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO", "MO"], "yas": 24, "reyting": 77, "potansiyel": 82, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/77673/toni-fruk/260042/", "player_id": "toni-fruk"}, "cardoso-varela": {"tam_isim": "C. Varela", "su_anki_takim": "Dinamo Zagreb", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO"], "yas": 16, "reyting": 68, "potansiyel": 88, "numericPrice": 3.3, "ucret_raw": "€6K", "player_url": "https://sofifa.com/player/80384/cardoso-varela/260042/", "player_id": "cardoso-varela"}, "robert-lewandowski": {"tam_isim": "R. Lewandowski", "su_anki_takim": "FC Barcelona", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 36, "reyting": 86, "potansiyel": 86, "numericPrice": 23.0, "ucret_raw": "€130K", "player_url": "https://sofifa.com/player/188545/robert-lewandowski/260042/", "player_id": "robert-lewandowski"}, "paul-pogba": {"tam_isim": "P. Pogba", "su_anki_takim": "AS Monaco", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 32, "reyting": 77, "potansiyel": 77, "numericPrice": 8.5, "ucret_raw": "€33K", "player_url": "https://sofifa.com/player/195864/paul-pogba/260042/", "player_id": "paul-pogba"}, "virgil-van-dijk": {"tam_isim": "V. van Dijk", "su_anki_takim": "Liverpool", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 33, "reyting": 88, "potansiyel": 88, "numericPrice": 43.5, "ucret_raw": "€195K", "player_url": "https://sofifa.com/player/203376/virgil-van-dijk/260042/", "player_id": "virgil-van-dijk"}, "leon-goretzka": {"tam_isim": "L. Goretzka", "su_anki_takim": "FC Bayern München", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 30, "reyting": 81, "potansiyel": 81, "numericPrice": 21.5, "ucret_raw": "€69K", "player_url": "https://sofifa.com/player/209658/leon-goretzka/260042/", "player_id": "leon-goretzka"}, "julian-brandt": {"tam_isim": "J. Brandt", "su_anki_takim": "Borussia Dortmund", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 29, "reyting": 82, "potansiyel": 82, "numericPrice": 30.0, "ucret_raw": "€64K", "player_url": "https://sofifa.com/player/212194/julian-brandt/260042/", "player_id": "julian-brandt"}, "denis-zakaria": {"tam_isim": "D. Zakaria", "su_anki_takim": "AS Monaco", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "STP"], "yas": 28, "reyting": 81, "potansiyel": 81, "numericPrice": 22.5, "ucret_raw": "€42K", "player_url": "https://sofifa.com/player/229261/denis-zakaria/260042/", "player_id": "denis-zakaria"}, "alphonso-davies": {"tam_isim": "A. Davies", "su_anki_takim": "FC Bayern München", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 24, "reyting": 83, "potansiyel": 86, "numericPrice": 46.0, "ucret_raw": "€68K", "player_url": "https://sofifa.com/player/234396/alphonso-davies/260042/", "player_id": "alphonso-davies"}, "edson-alvarez": {"tam_isim": "E. Álvarez", "su_anki_takim": "Fenerbahçe SK [Kiralık]", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "STP"], "yas": 27, "reyting": 78, "potansiyel": 79, "numericPrice": 14.5, "ucret_raw": "€61K", "player_url": "https://sofifa.com/player/235844/edson-alvarez/260042/", "player_id": "edson-alvarez"}, "dominik-szoboszlai": {"tam_isim": "D. Szoboszlai", "su_anki_takim": "Liverpool", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞB", "MO"], "yas": 24, "reyting": 86, "potansiyel": 88, "numericPrice": 88.0, "ucret_raw": "€145K", "player_url": "https://sofifa.com/player/236772/dominik-szoboszlai/260042/", "player_id": "dominik-szoboszlai"}, "pedro-antonio-pereira-goncalves": {"tam_isim": "Pedro Gonçalves", "su_anki_takim": "Sporting CP", "mevki": "Forvet", "mevki_kodlari": ["SLO", "MOO", "SLK"], "yas": 27, "reyting": 82, "potansiyel": 82, "numericPrice": 32.5, "ucret_raw": "€29K", "player_url": "https://sofifa.com/player/240950/pedro-antonio-pereira-goncalves/260042/", "player_id": "pedro-antonio-pereira-goncalves"}, "antoine-semenyo": {"tam_isim": "A. Semenyo", "su_anki_takim": "Manchester City", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "SLK", "SĞO"], "yas": 25, "reyting": 84, "potansiyel": 85, "numericPrice": 50.5, "ucret_raw": "€165K", "player_url": "https://sofifa.com/player/241236/antoine-semenyo/260042/", "player_id": "antoine-semenyo"}, "viktor-gyokeres": {"tam_isim": "V. Gyökeres", "su_anki_takim": "Arsenal", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 27, "reyting": 86, "potansiyel": 86, "numericPrice": 73.5, "ucret_raw": "€220K", "player_url": "https://sofifa.com/player/241651/viktor-gyokeres/260042/", "player_id": "viktor-gyokeres"}, "kang-in-lee": {"tam_isim": "Lee Kang In", "su_anki_takim": "Paris Saint-Germain", "mevki": "Forvet", "mevki_kodlari": ["SĞK", "MO", "MOO", "SĞO"], "yas": 24, "reyting": 80, "potansiyel": 83, "numericPrice": 29.0, "ucret_raw": "€78K", "player_url": "https://sofifa.com/player/243780/kang-in-lee/260042/", "player_id": "kang-in-lee"}, "morgan-gibbs-white": {"tam_isim": "M. Gibbs-White", "su_anki_takim": "Nottingham Forest", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO"], "yas": 25, "reyting": 81, "potansiyel": 83, "numericPrice": 32.5, "ucret_raw": "€100K", "player_url": "https://sofifa.com/player/236015/morgan-gibbs-white/260042/", "player_id": "morgan-gibbs-white"}, "alessandro-bastoni": {"tam_isim": "A. Bastoni", "su_anki_takim": "Inter", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 26, "reyting": 87, "potansiyel": 89, "numericPrice": 87.0, "ucret_raw": "€63K", "player_url": "https://sofifa.com/player/237383/alessandro-bastoni/260042/", "player_id": "alessandro-bastoni"}, "ibrahima-konate": {"tam_isim": "I. Konaté", "su_anki_takim": "Liverpool", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 26, "reyting": 84, "potansiyel": 85, "numericPrice": 43.5, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/237678/ibrahima-konate/260042/", "player_id": "ibrahima-konate"}, "joe-scally": {"tam_isim": "J. Scally", "su_anki_takim": "Borussia Mönchengladbach", "mevki": "Defans", "mevki_kodlari": ["SĞB", "STP", "SĞO", "SĞK"], "yas": 22, "reyting": 75, "potansiyel": 78, "numericPrice": 7.0, "ucret_raw": "€21K", "player_url": "https://sofifa.com/player/243133/joe-scally/260042/", "player_id": "joe-scally"}, "deniz-undav": {"tam_isim": "D. Undav", "su_anki_takim": "VfB Stuttgart", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO"], "yas": 28, "reyting": 82, "potansiyel": 82, "numericPrice": 31.0, "ucret_raw": "€59K", "player_url": "https://sofifa.com/player/244176/deniz-undav/260042/", "player_id": "deniz-undav"}, "eric-garcia-martret": {"tam_isim": "Eric García", "su_anki_takim": "FC Barcelona", "mevki": "Defans", "mevki_kodlari": ["STP", "SĞB", "MDO", "SĞO"], "yas": 24, "reyting": 83, "potansiyel": 86, "numericPrice": 44.5, "ucret_raw": "€95K", "player_url": "https://sofifa.com/player/245037/eric-garcia-martret/260042/", "player_id": "eric-garcia-martret"}, "harvey-elliott": {"tam_isim": "H. Elliott", "su_anki_takim": "Aston Villa [Kiralık]", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "SĞK"], "yas": 22, "reyting": 78, "potansiyel": 83, "numericPrice": 21.5, "ucret_raw": "€76K", "player_url": "https://sofifa.com/player/246174/harvey-elliott/260042/", "player_id": "harvey-elliott"}, "matt-freese": {"tam_isim": "M. Freese", "su_anki_takim": "New York City FC", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 26, "reyting": 71, "potansiyel": 74, "numericPrice": 1.9, "ucret_raw": "€4K", "player_url": "https://sofifa.com/player/247506/matt-freese/260042/", "player_id": "matt-freese"}, "victor-boniface": {"tam_isim": "V. Boniface", "su_anki_takim": "SV Werder Bremen [Kiralık]", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 24, "reyting": 79, "potansiyel": 83, "numericPrice": 25.5, "ucret_raw": "€70K", "player_url": "https://sofifa.com/player/247679/victor-boniface/260042/", "player_id": "victor-boniface"}, "marco-carnesecchi": {"tam_isim": "M. Carnesecchi", "su_anki_takim": "Atalanta", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 25, "reyting": 85, "potansiyel": 88, "numericPrice": 55.0, "ucret_raw": "€60K", "player_url": "https://sofifa.com/player/252154/marco-carnesecchi/260042/", "player_id": "marco-carnesecchi"}, "giuliano-simeone": {"tam_isim": "Giuliano", "su_anki_takim": "Atlético Madrid", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞK", "SLO"], "yas": 22, "reyting": 82, "potansiyel": 86, "numericPrice": 44.5, "ucret_raw": "€69K", "player_url": "https://sofifa.com/player/253396/giuliano-simeone/260042/", "player_id": "giuliano-simeone"}, "julio-cesar-enciso": {"tam_isim": "J. Enciso", "su_anki_takim": "RC Strasbourg Alsace", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SNT"], "yas": 21, "reyting": 75, "potansiyel": 84, "numericPrice": 12.5, "ucret_raw": "€33K", "player_url": "https://sofifa.com/player/255434/julio-cesar-enciso/260042/", "player_id": "julio-cesar-enciso"}, "jamal-musiala": {"tam_isim": "J. Musiala", "su_anki_takim": "FC Bayern München", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLO", "MO", "SNT"], "yas": 22, "reyting": 87, "potansiyel": 91, "numericPrice": 116.5, "ucret_raw": "€100K", "player_url": "https://sofifa.com/player/256790/jamal-musiala/260042/", "player_id": "jamal-musiala"}, "tiago-b-de-melo-tomas": {"tam_isim": "Tiago Tomás", "su_anki_takim": "VfB Stuttgart", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SNT", "SĞO", "SLK"], "yas": 23, "reyting": 76, "potansiyel": 82, "numericPrice": 12.0, "ucret_raw": "€30K", "player_url": "https://sofifa.com/player/257073/tiago-b-de-melo-tomas/260042/", "player_id": "tiago-b-de-melo-tomas"}, "sergio-arribas-calvo": {"tam_isim": "Arribas", "su_anki_takim": "UD Almería", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "MO"], "yas": 23, "reyting": 77, "potansiyel": 83, "numericPrice": 16.5, "ucret_raw": "€9K", "player_url": "https://sofifa.com/player/258923/sergio-arribas-calvo/260042/", "player_id": "sergio-arribas-calvo"}, "adam-wharton": {"tam_isim": "A. Wharton", "su_anki_takim": "Crystal Palace", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 21, "reyting": 81, "potansiyel": 87, "numericPrice": 38.0, "ucret_raw": "€66K", "player_url": "https://sofifa.com/player/259240/adam-wharton/260042/", "player_id": "adam-wharton"}, "yeremy-jesus-pino-santos": {"tam_isim": "Yeremy Pino", "su_anki_takim": "Crystal Palace", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SĞK", "MOO", "SLO"], "yas": 22, "reyting": 79, "potansiyel": 86, "numericPrice": 35.5, "ucret_raw": "€78K", "player_url": "https://sofifa.com/player/259377/yeremy-jesus-pino-santos/260042/", "player_id": "yeremy-jesus-pino-santos"}, "yoan-bonny": {"tam_isim": "Y. Bonny", "su_anki_takim": "Inter", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO"], "yas": 21, "reyting": 78, "potansiyel": 86, "numericPrice": 32.0, "ucret_raw": "€26K", "player_url": "https://sofifa.com/player/259565/yoan-bonny/260042/", "player_id": "yoan-bonny"}, "morgan-rogers": {"tam_isim": "M. Rogers", "su_anki_takim": "Aston Villa", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLO", "MO"], "yas": 22, "reyting": 84, "potansiyel": 86, "numericPrice": 56.0, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/260247/morgan-rogers/260042/", "player_id": "morgan-rogers"}, "iliman-ndiaye": {"tam_isim": "I. Ndiaye", "su_anki_takim": "Everton", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLO", "SĞK"], "yas": 25, "reyting": 82, "potansiyel": 83, "numericPrice": 36.5, "ucret_raw": "€55K", "player_url": "https://sofifa.com/player/261188/iliman-ndiaye/260042/", "player_id": "iliman-ndiaye"}, "tom-bischof": {"tam_isim": "T. Bischof", "su_anki_takim": "FC Bayern München", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "SLB"], "yas": 20, "reyting": 78, "potansiyel": 86, "numericPrice": 30.5, "ucret_raw": "€41K", "player_url": "https://sofifa.com/player/263765/tom-bischof/260042/", "player_id": "tom-bischof"}, "arda-guler": {"tam_isim": "A. Güler", "su_anki_takim": "Real Madrid", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "MO", "MOO", "SĞK"], "yas": 20, "reyting": 83, "potansiyel": 89, "numericPrice": 56.5, "ucret_raw": "€150K", "player_url": "https://sofifa.com/player/264309/arda-guler/260042/", "player_id": "arda-guler"}, "lewis-hall": {"tam_isim": "L. Hall", "su_anki_takim": "Newcastle United", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 20, "reyting": 81, "potansiyel": 86, "numericPrice": 35.5, "ucret_raw": "€86K", "player_url": "https://sofifa.com/player/266127/lewis-hall/260042/", "player_id": "lewis-hall"}, "alejandro-garnacho": {"tam_isim": "A. Garnacho", "su_anki_takim": "Chelsea", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLK"], "yas": 21, "reyting": 78, "potansiyel": 84, "numericPrice": 22.5, "ucret_raw": "€73K", "player_url": "https://sofifa.com/player/268438/alejandro-garnacho/260042/", "player_id": "alejandro-garnacho"}, "sverre-nypan": {"tam_isim": "S. Nypan", "su_anki_takim": "Manchester City", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO", "SNT"], "yas": 18, "reyting": 70, "potansiyel": 86, "numericPrice": 4.0, "ucret_raw": "€33K", "player_url": "https://sofifa.com/player/268737/sverre-nypan/260042/", "player_id": "sverre-nypan"}, "nathaniel-brown": {"tam_isim": "N. Brown", "su_anki_takim": "Eintracht Frankfurt", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO", "SĞB"], "yas": 22, "reyting": 80, "potansiyel": 86, "numericPrice": 31.5, "ucret_raw": "€32K", "player_url": "https://sofifa.com/player/269701/nathaniel-brown/260042/", "player_id": "nathaniel-brown"}, "antonio-joao-tavares-silva": {"tam_isim": "António Silva", "su_anki_takim": "SL Benfica", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 21, "reyting": 77, "potansiyel": 85, "numericPrice": 22.0, "ucret_raw": "€14K", "player_url": "https://sofifa.com/player/270086/antonio-joao-tavares-silva/260042/", "player_id": "antonio-joao-tavares-silva"}, "jobe-bellingham": {"tam_isim": "J. Bellingham", "su_anki_takim": "Borussia Dortmund", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 19, "reyting": 77, "potansiyel": 83, "numericPrice": 16.0, "ucret_raw": "€29K", "player_url": "https://sofifa.com/player/270964/jobe-bellingham/260042/", "player_id": "jobe-bellingham"}, "pablo-barrios-rivas": {"tam_isim": "Pablo Barrios", "su_anki_takim": "Atlético Madrid", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 22, "reyting": 83, "potansiyel": 87, "numericPrice": 52.5, "ucret_raw": "€75K", "player_url": "https://sofifa.com/player/272449/pablo-barrios-rivas/260042/", "player_id": "pablo-barrios-rivas"}, "carlos-baleba": {"tam_isim": "C. Baleba", "su_anki_takim": "Brighton & Hove Albion", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 21, "reyting": 80, "potansiyel": 86, "numericPrice": 31.0, "ucret_raw": "€65K", "player_url": "https://sofifa.com/player/272500/carlos-baleba/260042/", "player_id": "carlos-baleba"}, "jorrel-hato": {"tam_isim": "J. Hato", "su_anki_takim": "Chelsea", "mevki": "Defans", "mevki_kodlari": ["SLB", "STP", "MDO"], "yas": 19, "reyting": 78, "potansiyel": 87, "numericPrice": 29.0, "ucret_raw": "€65K", "player_url": "https://sofifa.com/player/272978/jorrel-hato/260042/", "player_id": "jorrel-hato"}, "gustavo-puerta": {"tam_isim": "G. Puerta", "su_anki_takim": "Racing Santander", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 21, "reyting": 71, "potansiyel": 82, "numericPrice": 4.0, "ucret_raw": "€5K", "player_url": "https://sofifa.com/player/273827/gustavo-puerta/260042/", "player_id": "gustavo-puerta"}, "alex-valle-gomez": {"tam_isim": "Álex Valle", "su_anki_takim": "Como", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 21, "reyting": 74, "potansiyel": 84, "numericPrice": 9.0, "ucret_raw": "€43K", "player_url": "https://sofifa.com/player/273875/alex-valle-gomez/260042/", "player_id": "alex-valle-gomez"}, "lamine-camara": {"tam_isim": "L. Camara", "su_anki_takim": "AS Monaco", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 21, "reyting": 79, "potansiyel": 85, "numericPrice": 28.0, "ucret_raw": "€27K", "player_url": "https://sofifa.com/player/275138/lamine-camara/260042/", "player_id": "lamine-camara"}, "niccolo-pisilli": {"tam_isim": "N. Pisilli", "su_anki_takim": "Roma", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO"], "yas": 20, "reyting": 72, "potansiyel": 84, "numericPrice": 5.5, "ucret_raw": "€24K", "player_url": "https://sofifa.com/player/275291/niccolo-pisilli/260042/", "player_id": "niccolo-pisilli"}, "nobel-mendy": {"tam_isim": "N. Mendy", "su_anki_takim": "Rayo Vallecano", "mevki": "Defans", "mevki_kodlari": ["STP", "SLB"], "yas": 20, "reyting": 75, "potansiyel": 85, "numericPrice": 11.5, "ucret_raw": "€16K", "player_url": "https://sofifa.com/player/276633/nobel-mendy/260042/", "player_id": "nobel-mendy"}, "patrick-dorgu": {"tam_isim": "P. Dorgu", "su_anki_takim": "Manchester United", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLB", "SĞO", "SLK"], "yas": 20, "reyting": 77, "potansiyel": 84, "numericPrice": 21.0, "ucret_raw": "€52K", "player_url": "https://sofifa.com/player/277432/patrick-dorgu/260042/", "player_id": "patrick-dorgu"}, "samuel-omorodion-aghehowa": {"tam_isim": "Samu", "su_anki_takim": "FC Porto", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 21, "reyting": 79, "potansiyel": 87, "numericPrice": 39.5, "ucret_raw": "€14K", "player_url": "https://sofifa.com/player/277581/samuel-omorodion-aghehowa/260042/", "player_id": "samuel-omorodion-aghehowa"}, "kenan-yildiz": {"tam_isim": "K. Yıldız", "su_anki_takim": "Juventus", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLO", "SLK", "MO"], "yas": 20, "reyting": 82, "potansiyel": 89, "numericPrice": 60.5, "ucret_raw": "€100K", "player_url": "https://sofifa.com/player/277954/kenan-yildiz/260042/", "player_id": "kenan-yildiz"}, "ethan-mbappe": {"tam_isim": "E. Mbappé", "su_anki_takim": "Lille OSC", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "MO", "SĞK"], "yas": 18, "reyting": 72, "potansiyel": 82, "numericPrice": 4.9, "ucret_raw": "€13K", "player_url": "https://sofifa.com/player/278172/ethan-mbappe/260042/", "player_id": "ethan-mbappe"}, "jorthy-mokio": {"tam_isim": "J. Mokio", "su_anki_takim": "Ajax", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO", "SLB"], "yas": 17, "reyting": 70, "potansiyel": 88, "numericPrice": 3.8, "ucret_raw": "€5K", "player_url": "https://sofifa.com/player/71351/jorthy-mokio/260042/", "player_id": "jorthy-mokio"}, "mikey-moore": {"tam_isim": "M. Moore", "su_anki_takim": "Rangers FC [Kiralık]", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SLO", "MOO"], "yas": 17, "reyting": 74, "potansiyel": 88, "numericPrice": 9.5, "ucret_raw": "€40K", "player_url": "https://sofifa.com/player/72159/mikey-moore/260042/", "player_id": "mikey-moore"}, "pedro-henrique-cardoso-de-lima": {"tam_isim": "Pedro Lima", "su_anki_takim": "Wolverhampton Wanderers", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 19, "reyting": 68, "potansiyel": 83, "numericPrice": 2.7, "ucret_raw": "€17K", "player_url": "https://sofifa.com/player/73049/pedro-henrique-cardoso-de-lima/260042/", "player_id": "pedro-henrique-cardoso-de-lima"}, "mateo-chavez": {"tam_isim": "M. Chávez", "su_anki_takim": "AZ Alkmaar", "mevki": "Defans", "mevki_kodlari": ["SLB"], "yas": 21, "reyting": 71, "potansiyel": 78, "numericPrice": 3.6, "ucret_raw": "€9K", "player_url": "https://sofifa.com/player/78784/mateo-chavez/260042/", "player_id": "mateo-chavez"}, "wesley-vinicius-franca-lima": {"tam_isim": "Wesley", "su_anki_takim": "Roma", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLO", "SĞB", "SĞK"], "yas": 21, "reyting": 79, "potansiyel": 85, "numericPrice": 28.0, "ucret_raw": "€42K", "player_url": "https://sofifa.com/player/80170/wesley-vinicius-franca-lima/260042/", "player_id": "wesley-vinicius-franca-lima"}, "samuele-inacio": {"tam_isim": "S. Inacio", "su_anki_takim": "Borussia Dortmund", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SNT"], "yas": 17, "reyting": 66, "potansiyel": 84, "numericPrice": 2.1, "ucret_raw": "€7K", "player_url": "https://sofifa.com/player/83748/samuele-inacio/260042/", "player_id": "samuele-inacio"}, "inigo-martinez-berridi": {"tam_isim": "Iñigo Martínez", "su_anki_takim": "Al Nassr", "mevki": "Defans", "mevki_kodlari": ["STP", "SLB"], "yas": 34, "reyting": 84, "potansiyel": 84, "numericPrice": 13.5, "ucret_raw": "€68K", "player_url": "https://sofifa.com/player/204525/inigo-martinez-berridi/260042/", "player_id": "inigo-martinez-berridi"}, "goncalo-manuel-ganchinho-guedes": {"tam_isim": "Guedes", "su_anki_takim": "Real Sociedad", "mevki": "Forvet", "mevki_kodlari": ["SLK", "SĞO", "SNT", "SLO"], "yas": 28, "reyting": 78, "potansiyel": 78, "numericPrice": 14.0, "ucret_raw": "€43K", "player_url": "https://sofifa.com/player/224411/goncalo-manuel-ganchinho-guedes/260042/", "player_id": "goncalo-manuel-ganchinho-guedes"}, "aleix-garcia-serrano": {"tam_isim": "Aleix García", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 28, "reyting": 84, "potansiyel": 84, "numericPrice": 42.0, "ucret_raw": "€110K", "player_url": "https://sofifa.com/player/228813/aleix-garcia-serrano/260042/", "player_id": "aleix-garcia-serrano"}, "manuel-akanji": {"tam_isim": "M. Akanji", "su_anki_takim": "Inter [Kiralık]", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 29, "reyting": 83, "potansiyel": 83, "numericPrice": 30.5, "ucret_raw": "€145K", "player_url": "https://sofifa.com/player/229237/manuel-akanji/260042/", "player_id": "manuel-akanji"}, "waldemar-anton": {"tam_isim": "W. Anton", "su_anki_takim": "Borussia Dortmund", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 28, "reyting": 83, "potansiyel": 83, "numericPrice": 31.5, "ucret_raw": "€66K", "player_url": "https://sofifa.com/player/229476/waldemar-anton/260042/", "player_id": "waldemar-anton"}, "raphael-dias-belloli": {"tam_isim": "Raphinha", "su_anki_takim": "FC Barcelona", "mevki": "Forvet", "mevki_kodlari": ["SLK", "MOO", "SĞK", "SLO"], "yas": 28, "reyting": 89, "potansiyel": 89, "numericPrice": 104.0, "ucret_raw": "€220K", "player_url": "https://sofifa.com/player/233419/raphael-dias-belloli/260042/", "player_id": "raphael-dias-belloli"}, "kai-havertz": {"tam_isim": "K. Havertz", "su_anki_takim": "Arsenal", "mevki": "Forvet", "mevki_kodlari": ["SNT", "MOO", "MO"], "yas": 26, "reyting": 82, "potansiyel": 84, "numericPrice": 38.0, "ucret_raw": "€155K", "player_url": "https://sofifa.com/player/235790/kai-havertz/260042/", "player_id": "kai-havertz"}, "luis-diaz": {"tam_isim": "L. Díaz", "su_anki_takim": "FC Bayern München", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLK", "SNT"], "yas": 28, "reyting": 87, "potansiyel": 87, "numericPrice": 80.0, "ucret_raw": "€120K", "player_url": "https://sofifa.com/player/241084/luis-diaz/260042/", "player_id": "luis-diaz"}, "james-garner": {"tam_isim": "J. Garner", "su_anki_takim": "Everton", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "SĞB", "MO"], "yas": 24, "reyting": 81, "potansiyel": 84, "numericPrice": 32.0, "ucret_raw": "€44K", "player_url": "https://sofifa.com/player/243657/james-garner/260042/", "player_id": "james-garner"}, "marcel-ruiz": {"tam_isim": "M. Ruiz", "su_anki_takim": "Serbest (Meksika)", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MOO", "MDO"], "yas": 24, "reyting": 77, "potansiyel": 82, "numericPrice": 0.0, "ucret_raw": "€0", "player_url": "https://sofifa.com/player/244973/marcel-ruiz/260035/", "player_id": "marcel-ruiz"}, "thiago-almada": {"tam_isim": "T. Almada", "su_anki_takim": "Atlético Madrid", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SLO", "SLK", "MO"], "yas": 24, "reyting": 78, "potansiyel": 83, "numericPrice": 21.0, "ucret_raw": "€52K", "player_url": "https://sofifa.com/player/245371/thiago-almada/260042/", "player_id": "thiago-almada"}, "ryan-gravenberch": {"tam_isim": "R. Gravenberch", "su_anki_takim": "Liverpool", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 23, "reyting": 86, "potansiyel": 89, "numericPrice": 84.0, "ucret_raw": "€135K", "player_url": "https://sofifa.com/player/246104/ryan-gravenberch/260042/", "player_id": "ryan-gravenberch"}, "khephren-thuram": {"tam_isim": "K. Thuram", "su_anki_takim": "Juventus", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 24, "reyting": 81, "potansiyel": 85, "numericPrice": 36.5, "ucret_raw": "€105K", "player_url": "https://sofifa.com/player/247246/khephren-thuram/260042/", "player_id": "khephren-thuram"}, "edmond-tapsoba": {"tam_isim": "E. Tapsoba", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 26, "reyting": 82, "potansiyel": 83, "numericPrice": 31.5, "ucret_raw": "€86K", "player_url": "https://sofifa.com/player/247263/edmond-tapsoba/260042/", "player_id": "edmond-tapsoba"}, "maxim-de-cuyper": {"tam_isim": "M. De Cuyper", "su_anki_takim": "Brighton & Hove Albion", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 24, "reyting": 79, "potansiyel": 83, "numericPrice": 23.5, "ucret_raw": "€74K", "player_url": "https://sofifa.com/player/251479/maxim-de-cuyper/260042/", "player_id": "maxim-de-cuyper"}, "arnaud-kalimuendo": {"tam_isim": "A. Kalimuendo", "su_anki_takim": "Eintracht Frankfurt [Kiralık]", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SLO", "SĞO"], "yas": 23, "reyting": 78, "potansiyel": 82, "numericPrice": 20.5, "ucret_raw": "€77K", "player_url": "https://sofifa.com/player/253444/arnaud-kalimuendo/260042/", "player_id": "arnaud-kalimuendo"}, "jake-obrien": {"tam_isim": "J. O'Brien", "su_anki_takim": "Everton", "mevki": "Defans", "mevki_kodlari": ["SĞB", "STP", "SĞO"], "yas": 24, "reyting": 76, "potansiyel": 81, "numericPrice": 10.5, "ucret_raw": "€31K", "player_url": "https://sofifa.com/player/253510/jake-obrien/260042/", "player_id": "jake-obrien"}, "zion-suzuki": {"tam_isim": "Z. Suzuki", "su_anki_takim": "Parma", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 22, "reyting": 74, "potansiyel": 80, "numericPrice": 5.5, "ucret_raw": "€9K", "player_url": "https://sofifa.com/player/255981/zion-suzuki/260042/", "player_id": "zion-suzuki"}, "malick-fofana": {"tam_isim": "M. Fofana", "su_anki_takim": "Olympique Lyonnais", "mevki": "Forvet", "mevki_kodlari": ["SLO", "SLK"], "yas": 20, "reyting": 78, "potansiyel": 86, "numericPrice": 31.0, "ucret_raw": "€17K", "player_url": "https://sofifa.com/player/256420/malick-fofana/260042/", "player_id": "malick-fofana"}, "amadou-onana": {"tam_isim": "A. Onana", "su_anki_takim": "Aston Villa", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 23, "reyting": 81, "potansiyel": 84, "numericPrice": 32.0, "ucret_raw": "€95K", "player_url": "https://sofifa.com/player/257057/amadou-onana/260042/", "player_id": "amadou-onana"}, "cole-palmer": {"tam_isim": "C. Palmer", "su_anki_takim": "Chelsea", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "MO"], "yas": 23, "reyting": 86, "potansiyel": 89, "numericPrice": 93.0, "ucret_raw": "€170K", "player_url": "https://sofifa.com/player/257534/cole-palmer/260042/", "player_id": "cole-palmer"}, "riccardo-calafiori": {"tam_isim": "R. Calafiori", "su_anki_takim": "Arsenal", "mevki": "Defans", "mevki_kodlari": ["SLB", "STP", "MO"], "yas": 23, "reyting": 82, "potansiyel": 86, "numericPrice": 40.5, "ucret_raw": "€120K", "player_url": "https://sofifa.com/player/257711/riccardo-calafiori/260042/", "player_id": "riccardo-calafiori"}, "josep-maria-chavarria-perez": {"tam_isim": "Pep Chavarría", "su_anki_takim": "Rayo Vallecano", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLO"], "yas": 27, "reyting": 78, "potansiyel": 78, "numericPrice": 13.5, "ucret_raw": "€26K", "player_url": "https://sofifa.com/player/258371/josep-maria-chavarria-perez/260042/", "player_id": "josep-maria-chavarria-perez"}, "thelo-aasgaard": {"tam_isim": "T. Aasgaard", "su_anki_takim": "Rangers FC", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "MDO", "SNT"], "yas": 23, "reyting": 71, "potansiyel": 78, "numericPrice": 3.8, "ucret_raw": "€28K", "player_url": "https://sofifa.com/player/259185/thelo-aasgaard/260042/", "player_id": "thelo-aasgaard"}, "malo-gusto": {"tam_isim": "M. Gusto", "su_anki_takim": "Chelsea", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 22, "reyting": 79, "potansiyel": 84, "numericPrice": 25.0, "ucret_raw": "€90K", "player_url": "https://sofifa.com/player/259307/malo-gusto/260042/", "player_id": "malo-gusto"}, "daniel-svensson": {"tam_isim": "D. Svensson", "su_anki_takim": "Borussia Dortmund", "mevki": "Defans", "mevki_kodlari": ["SLB", "MO", "SLO"], "yas": 23, "reyting": 79, "potansiyel": 83, "numericPrice": 23.5, "ucret_raw": "€41K", "player_url": "https://sofifa.com/player/259716/daniel-svensson/260042/", "player_id": "daniel-svensson"}, "rodrigo-muniz-carvalho": {"tam_isim": "Rodrigo Muniz", "su_anki_takim": "Fulham FC", "mevki": "Forvet", "mevki_kodlari": ["SNT"], "yas": 24, "reyting": 76, "potansiyel": 81, "numericPrice": 11.5, "ucret_raw": "€63K", "player_url": "https://sofifa.com/player/264337/rodrigo-muniz-carvalho/260042/", "player_id": "rodrigo-muniz-carvalho"}, "thierry-small": {"tam_isim": "T. Small", "su_anki_takim": "Preston North End", "mevki": "Defans", "mevki_kodlari": ["SLB", "SĞB", "SĞO", "SLO"], "yas": 20, "reyting": 70, "potansiyel": 80, "numericPrice": 3.3, "ucret_raw": "€8K", "player_url": "https://sofifa.com/player/264421/thierry-small/260042/", "player_id": "thierry-small"}, "matthis-abline": {"tam_isim": "M. Abline", "su_anki_takim": "FC Nantes", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SLK", "SLO"], "yas": 22, "reyting": 76, "potansiyel": 82, "numericPrice": 12.0, "ucret_raw": "€18K", "player_url": "https://sofifa.com/player/264422/matthis-abline/260042/", "player_id": "matthis-abline"}, "maghnes-akliouche": {"tam_isim": "M. Akliouche", "su_anki_takim": "AS Monaco", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "SĞO", "SNT"], "yas": 23, "reyting": 80, "potansiyel": 86, "numericPrice": 33.5, "ucret_raw": "€35K", "player_url": "https://sofifa.com/player/264862/maghnes-akliouche/260042/", "player_id": "maghnes-akliouche"}, "nestory-irankunda": {"tam_isim": "N. Irankunda", "su_anki_takim": "Watford", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SNT", "SLO", "SĞK"], "yas": 19, "reyting": 69, "potansiyel": 84, "numericPrice": 3.3, "ucret_raw": "€12K", "player_url": "https://sofifa.com/player/266245/nestory-irankunda/260042/", "player_id": "nestory-irankunda"}, "mathys-tel": {"tam_isim": "M. Tel", "su_anki_takim": "Tottenham Hotspur", "mevki": "Forvet", "mevki_kodlari": ["SNT", "SLK", "SLO", "MOO"], "yas": 20, "reyting": 77, "potansiyel": 85, "numericPrice": 23.5, "ucret_raw": "€68K", "player_url": "https://sofifa.com/player/268421/mathys-tel/260042/", "player_id": "mathys-tel"}, "kobbie-mainoo": {"tam_isim": "K. Mainoo", "su_anki_takim": "Manchester United", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "MO"], "yas": 20, "reyting": 79, "potansiyel": 85, "numericPrice": 25.0, "ucret_raw": "€58K", "player_url": "https://sofifa.com/player/269136/kobbie-mainoo/260042/", "player_id": "kobbie-mainoo"}, "arthur-vermeeren": {"tam_isim": "A. Vermeeren", "su_anki_takim": "Olympique de Marseille [Kiralık]", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO"], "yas": 20, "reyting": 77, "potansiyel": 86, "numericPrice": 23.0, "ucret_raw": "€35K", "player_url": "https://sofifa.com/player/269859/arthur-vermeeren/260042/", "player_id": "arthur-vermeeren"}, "archie-gray": {"tam_isim": "A. Gray", "su_anki_takim": "Tottenham Hotspur", "mevki": "Orta Saha", "mevki_kodlari": ["MDO", "STP", "SĞB", "MO"], "yas": 19, "reyting": 77, "potansiyel": 86, "numericPrice": 21.5, "ucret_raw": "€53K", "player_url": "https://sofifa.com/player/270208/archie-gray/260042/", "player_id": "archie-gray"}, "ousmane-diomande": {"tam_isim": "O. Diomande", "su_anki_takim": "Sporting CP", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 21, "reyting": 80, "potansiyel": 87, "numericPrice": 40.0, "ucret_raw": "€17K", "player_url": "https://sofifa.com/player/270531/ousmane-diomande/260042/", "player_id": "ousmane-diomande"}, "givairo-read": {"tam_isim": "G. Read", "su_anki_takim": "Feyenoord", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 19, "reyting": 76, "potansiyel": 89, "numericPrice": 17.0, "ucret_raw": "€11K", "player_url": "https://sofifa.com/player/271266/givairo-read/260042/", "player_id": "givairo-read"}, "yaimar-medina": {"tam_isim": "Y. Medina", "su_anki_takim": "KRC Genk", "mevki": "Defans", "mevki_kodlari": ["SLB", "SLK", "SLO"], "yas": 20, "reyting": 70, "potansiyel": 84, "numericPrice": 3.7, "ucret_raw": "€10K", "player_url": "https://sofifa.com/player/271417/yaimar-medina/260042/", "player_id": "yaimar-medina"}, "robin-risser": {"tam_isim": "R. Risser", "su_anki_takim": "RC Lens", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 20, "reyting": 78, "potansiyel": 85, "numericPrice": 23.5, "ucret_raw": "€10K", "player_url": "https://sofifa.com/player/271918/robin-risser/260042/", "player_id": "robin-risser"}, "angelo-gabriel-borges-damaceno": {"tam_isim": "Ângelo", "su_anki_takim": "Al Nassr", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SLO", "MO", "SĞK"], "yas": 20, "reyting": 75, "potansiyel": 84, "numericPrice": 12.5, "ucret_raw": "€26K", "player_url": "https://sofifa.com/player/272829/angelo-gabriel-borges-damaceno/260042/", "player_id": "angelo-gabriel-borges-damaceno"}, "chris-rigg": {"tam_isim": "C. Rigg", "su_anki_takim": "Sunderland", "mevki": "Orta Saha", "mevki_kodlari": ["MOO", "MO", "SĞO"], "yas": 18, "reyting": 72, "potansiyel": 84, "numericPrice": 5.5, "ucret_raw": "€25K", "player_url": "https://sofifa.com/player/273459/chris-rigg/260042/", "player_id": "chris-rigg"}, "jarell-quansah": {"tam_isim": "J. Quansah", "su_anki_takim": "Bayer 04 Leverkusen", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 22, "reyting": 76, "potansiyel": 84, "numericPrice": 15.5, "ucret_raw": "€48K", "player_url": "https://sofifa.com/player/273651/jarell-quansah/260042/", "player_id": "jarell-quansah"}, "moise-bombito": {"tam_isim": "M. Bombito", "su_anki_takim": "OGC Nice", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 25, "reyting": 75, "potansiyel": 80, "numericPrice": 7.5, "ucret_raw": "€22K", "player_url": "https://sofifa.com/player/274536/moise-bombito/260042/", "player_id": "moise-bombito"}, "mamadou-sarr": {"tam_isim": "M. Sarr", "su_anki_takim": "Chelsea", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 19, "reyting": 77, "potansiyel": 84, "numericPrice": 19.0, "ucret_raw": "€61K", "player_url": "https://sofifa.com/player/275507/mamadou-sarr/260042/", "player_id": "mamadou-sarr"}, "ezechiel-banzuzi": {"tam_isim": "E. Banzuzi", "su_anki_takim": "RB Leipzig", "mevki": "Orta Saha", "mevki_kodlari": ["MO", "MDO", "MOO"], "yas": 20, "reyting": 73, "potansiyel": 85, "numericPrice": 7.5, "ucret_raw": "€26K", "player_url": "https://sofifa.com/player/276216/ezechiel-banzuzi/260042/", "player_id": "ezechiel-banzuzi"}, "santiago-mourino": {"tam_isim": "S. Mouriño", "su_anki_takim": "Villarreal CF", "mevki": "Defans", "mevki_kodlari": ["SĞB", "STP", "MDO"], "yas": 23, "reyting": 78, "potansiyel": 85, "numericPrice": 27.0, "ucret_raw": "€32K", "player_url": "https://sofifa.com/player/276493/santiago-mourino/260042/", "player_id": "santiago-mourino"}, "mamadou-diop": {"tam_isim": "M. Diop", "su_anki_takim": "Grenoble Foot 38", "mevki": "Kaleci", "mevki_kodlari": ["KL"], "yas": 25, "reyting": 70, "potansiyel": 75, "numericPrice": 1.9, "ucret_raw": "€3K", "player_url": "https://sofifa.com/player/276761/mamadou-diop/260042/", "player_id": "mamadou-diop"}, "jon-martin-vicente": {"tam_isim": "Jon Martín", "su_anki_takim": "Real Sociedad", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 19, "reyting": 77, "potansiyel": 86, "numericPrice": 21.0, "ucret_raw": "€24K", "player_url": "https://sofifa.com/player/277225/jon-martin-vicente/260042/", "player_id": "jon-martin-vicente"}, "carlos-roberto-forbs-borges": {"tam_isim": "Carlos Forbs", "su_anki_takim": "Club Brugge KV", "mevki": "Forvet", "mevki_kodlari": ["SĞO", "SĞK", "SLK"], "yas": 21, "reyting": 72, "potansiyel": 82, "numericPrice": 5.5, "ucret_raw": "€15K", "player_url": "https://sofifa.com/player/277426/carlos-roberto-forbs-borges/260042/", "player_id": "carlos-roberto-forbs-borges"}, "marco-palestra": {"tam_isim": "M. Palestra", "su_anki_takim": "Cagliari [Kiralık]", "mevki": "Defans", "mevki_kodlari": ["SĞB", "SĞO"], "yas": 20, "reyting": 75, "potansiyel": 84, "numericPrice": 12.0, "ucret_raw": "€35K", "player_url": "https://sofifa.com/player/278339/marco-palestra/260042/", "player_id": "marco-palestra"}, "myles-lewis-skelly": {"tam_isim": "M. Lewis-Skelly", "su_anki_takim": "Arsenal", "mevki": "Defans", "mevki_kodlari": ["SLB", "MO"], "yas": 18, "reyting": 78, "potansiyel": 87, "numericPrice": 28.0, "ucret_raw": "€64K", "player_url": "https://sofifa.com/player/278773/myles-lewis-skelly/260042/", "player_id": "myles-lewis-skelly"}, "finn-jeltsch": {"tam_isim": "F. Jeltsch", "su_anki_takim": "VfB Stuttgart", "mevki": "Defans", "mevki_kodlari": ["STP"], "yas": 18, "reyting": 74, "potansiyel": 87, "numericPrice": 9.0, "ucret_raw": "€18K", "player_url": "https://sofifa.com/player/278780/finn-jeltsch/260042/", "player_id": "finn-jeltsch"}};
+</script>
+<style>
+    :root {
+        --bg-dark: #0f172a; --panel-dark: #1e293b; --panel-light: #263449; --primary: #3b82f6; --primary-hover: #2563eb;
+        --success: #10b981; --success-hover: #059669; --danger: #ef4444; --text-light: #f8fafc;
+        --text-muted: #94a3b8; --gold: #eab308; --border-color: rgba(255,255,255,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+    body { background-color: var(--bg-dark); color: var(--text-light); min-height: 100vh; padding: 10px; display: flex; flex-direction: column; align-items: center; -webkit-text-size-adjust: 100%; }
+    header { text-align: center; margin-bottom: 15px; width: 100%; }
+    header h1 { font-size: 1.9rem; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 2px 10px rgba(234,179,8,0.2); }
+    header p { font-size: 0.85rem; color: var(--text-muted); }
+    .container { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 15px; }
+
+    .btn { color: white; padding: 12px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: all 0.15s; background: var(--primary); }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { background: #475569; cursor: not-allowed; opacity: 0.5; }
+    .btn-success { background: var(--success); } .btn-success:hover { background: var(--success-hover); }
+    .btn-danger { background: var(--danger); }
+    .btn-gold { background: var(--gold); color: #1e1b06; font-weight: 800; }
+
+    .card-panel { background: var(--panel-dark); border-radius: 12px; padding: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .screen { display: none; } .screen.active { display: block; }
+
+    .stat-badge { background: rgba(59,130,246,0.15); border: 1px solid var(--primary); padding: 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #93c5fd; text-align: center; margin-bottom: 10px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    .form-group label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    .form-group input, .form-group select { background: var(--bg-dark); border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 6px; font-size: 0.95rem; outline: none; width: 100%; }
+    .auth-grid { display: flex; flex-direction: column; gap: 15px; }
+    .auth-box { border: 1px solid var(--border-color); padding: 15px; border-radius: 10px; background: rgba(0,0,0,0.15); }
+
+    .lobby-list { margin: 12px 0; padding: 10px; background: var(--bg-dark); border-radius: 6px; border: 1px solid var(--border-color); }
+    .lobby-player { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; font-size: 0.9rem; }
+
+    .teams-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 10px; margin-bottom: 15px; }
+    .team-box { padding: 10px; border-radius: 8px; background: var(--panel-light); border-top: 4px solid var(--primary); font-size: 0.8rem; }
+    .team-box.winner-flash { border-top-color: var(--gold); background: rgba(234,179,8,0.08); }
+    .team-slots { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .slot-pip { width: 18px; height: 18px; border-radius: 4px; background: var(--bg-dark); border: 1px solid var(--border-color); font-size: 0.6rem; display:flex; align-items:center; justify-content:center; }
+    .slot-pip.filled { background: var(--success); border-color: var(--success); color:#052e1a; font-weight:800; }
+
+    .round-info { text-align: center; font-size: 1.05rem; font-weight: 700; color: var(--gold); margin-bottom: 10px; }
+    .auction-card { background: linear-gradient(160deg, #263449, #1e293b); border: 2px solid var(--gold); border-radius: 14px; padding: 20px; text-align: center; max-width: 420px; margin: 0 auto 15px; }
+    .auction-card .pos-badge { display:inline-block; background: var(--primary); color:white; font-size:0.75rem; font-weight:700; padding: 4px 12px; border-radius: 20px; margin-bottom: 8px; }
+    .auction-card h2 { font-size: 1.4rem; color: var(--gold); margin-bottom: 6px; }
+    .auction-card .sub { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 10px; }
+    .stat-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding: 6px 0; font-size: 0.85rem; }
+
+    .bid-box { background: rgba(0,0,0,0.25); border-radius: 10px; padding: 14px; text-align: center; margin-bottom: 12px; }
+    .bid-amount { font-size: 2rem; font-weight: 800; color: var(--success); }
+    .bid-leader { font-size: 0.85rem; color: var(--text-muted); }
+    .timer-wrap { height: 8px; background: var(--bg-dark); border-radius: 4px; overflow: hidden; margin-top: 10px; }
+    .timer-bar { height: 100%; background: var(--gold); transition: width 0.2s linear; }
+    .timer-bar.danger { background: var(--danger); }
+
+    .bid-buttons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px; }
+    .bid-buttons .btn { min-width: 90px; }
+
+    .sale-log { max-height: 160px; overflow-y: auto; font-size: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; background: var(--bg-dark); }
+    .sale-log div { padding: 4px 0; border-bottom: 1px solid var(--border-color); color: var(--text-muted); }
+    .sale-log div b { color: var(--gold); }
+
+    .result-row { display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--bg-dark); border-radius:8px; border-left:4px solid var(--primary); margin-bottom:10px; }
+    .auto-tag { background: var(--gold); color:#1e1b06; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:10px; margin-left:6px; }
+
+    @media (min-width: 640px) {
+        body { padding: 22px; }
+        header h1 { font-size: 2.4rem; }
+        .auth-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px,1fr)); gap: 20px; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Açık Artırma 11</h1>
+    <p>Canlı Bulut Tabanlı Kadro Kurma Yarışması (Kadro Büyüklüğü Katılımcı Sayısına Göre Otomatik)</p>
+</header>
+
+<div class="container">
+
+    <!-- KURULUM EKRANI -->
+    <div class="card-panel screen active" id="setupScreen">
+        <div class="stat-badge" id="lblDbCount">Sistem Oyuncu Sayısı: Yükleniyor...</div>
+        <h2 style="margin-bottom:12px;">Yarışma Kurulumu</h2>
+        <div class="auth-grid">
+            <div class="auth-box">
+                <h3 style="margin-bottom:10px;">1. Moderatör Ayarları</h3>
+                <div class="form-group">
+                    <label>Moderatör Adı</label>
+                    <input type="text" id="modName" value="Moderatör">
+                </div>
+                <div class="form-group">
+                    <label>Bütçe (Milyon € - En Az 1000 / En Çok 3000)</label>
+                    <input type="number" id="setupBudget" value="1500" min="1000" max="3000" step="50">
+                </div>
+                <div class="form-group">
+                    <label>Kadro Büyüklüğü</label>
+                    <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-dark); border:1px solid var(--border-color); border-radius:6px; padding:10px;">
+                        Otomatik ayarlanır: Kaleci sabit 1, Defans / Orta Saha / Forvet ise <b>katılan takım sayısı kadar</b> olur.
+                        Örn. 4 takım katılırsa her takım 1 KL + 4 DEF + 4 ORT + 4 FOR alır.
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Teklif Süresi (Her Tur)</label>
+                    <select id="setupDuration">
+                        <option value="5">5 saniye</option>
+                        <option value="10" selected>10 saniye</option>
+                        <option value="15">15 saniye</option>
+                        <option value="20">20 saniye</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Artırım Adımları (Milyon €)</label>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Sabit: +1 / +5 / +10</div>
+                </div>
+                <button class="btn btn-success" id="btnCreateRoom" style="width:100%;" disabled>Bulut Odası Oluştur</button>
+            </div>
+            <div class="auth-box" style="display:flex; flex-direction:column; justify-content:center;">
+                <h3 style="margin-bottom:10px;">2. Takım Girişi</h3>
+                <div class="form-group">
+                    <label>Takım Adınız</label>
+                    <input type="text" id="playerName" placeholder="Örn: Kartallar FC">
+                </div>
+                <div class="form-group">
+                    <label>Oda Kodu</label>
+                    <input type="text" id="inputRoomCode" placeholder="6 Haneli Kod" style="text-transform:uppercase;">
+                </div>
+                <button class="btn" id="btnJoinRoom" style="width:100%;">Odaya Bağlan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOBİ EKRANI -->
+    <div class="card-panel screen" id="lobbyScreen">
+        <h2 id="lobbyTitle">Oda Kodu: -</h2>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin:6px 0;">Kadro: <span id="lobbyFormation"></span> | Bütçe: <span id="lobbyBudget"></span>m €</p>
+        <div class="lobby-list" id="lobbyListContainer"></div>
+        <button class="btn btn-success" id="btnStartAuction" style="width:100%; display:none;">Açık Artırmayı Başlat</button>
+        <p id="lobbyWaitText" style="text-align:center; color:var(--text-muted); margin-top:10px;">Moderatörün başlatmasını bekleyin...</p>
+    </div>
+
+    <!-- AÇIK ARTIRMA EKRANI -->
+    <div class="card-panel screen" id="auctionScreen">
+        <div class="round-info" id="roundInfo">Mevki Turu: -</div>
+
+        <div class="auction-card" id="auctionCard">
+            <span class="pos-badge" id="cardPos">-</span>
+            <span id="cardPosRaw" style="display:block; font-size:0.65rem; color:var(--text-muted); margin-bottom:4px;"></span>
+            <h2 id="cardName">-</h2>
+            <div class="sub" id="cardSub">-</div>
+            <div class="stat-row"><span>Lig:</span><span id="cardLeague">-</span></div>
+            <div class="stat-row"><span>Uyruk:</span><span id="cardNat">-</span></div>
+            <div class="stat-row"><span>Güç / Reyting:</span><span id="cardRating" style="color:var(--gold); font-weight:700;">-</span></div>
+            <div class="stat-row" style="border-bottom:none;"><span>Piyasa Değeri:</span><span id="cardPrice">-</span></div>
+        </div>
+
+        <div class="bid-box">
+            <div class="bid-amount" id="bidAmount">€0m</div>
+            <div class="bid-leader" id="bidLeader">Henüz teklif yok</div>
+            <div class="timer-wrap"><div class="timer-bar" id="timerBar" style="width:100%;"></div></div>
+        </div>
+
+        <div class="bid-buttons" id="bidButtons">
+            <button class="btn" onclick="placeBid(1)">+1m Teklif Ver</button>
+            <button class="btn" onclick="placeBid(5)">+5m Teklif Ver</button>
+            <button class="btn btn-gold" onclick="placeBid(10)">+10m Teklif Ver</button>
+        </div>
+        <div id="notEligibleMsg" style="display:none; text-align:center; color:var(--text-muted); margin-bottom:15px; font-size:0.85rem;"></div>
+
+        <div class="teams-grid" id="teamsGrid"></div>
+
+        <h3 style="margin-bottom:8px; font-size:0.95rem; color:var(--primary);">📋 Satış Akışı</h3>
+        <div class="sale-log" id="saleLog"></div>
+
+        <button class="btn btn-danger" id="btnEndAuction" style="width:100%; margin-top:12px; display:none;">Yarışmayı Sonlandır</button>
+    </div>
+
+    <!-- SONUÇ EKRANI -->
+    <div class="card-panel screen" id="resultScreen">
+        <h2 style="text-align:center; color:var(--gold); margin-bottom:15px;">🏆 Nihai Kadro Sıralaması</h2>
+        <div id="resultList"></div>
+    </div>
+
+</div>
+
+<script type="module">
+    const CATS = ['GK','DEF','MID','FWD'];
+    const CAT_LABEL = { GK:'Kaleci', DEF:'Defans', MID:'Orta Saha', FWD:'Forvet' };
+    // Kadro büyüklüğü artık sabit bir formasyondan değil, odadaki takım sayısından geliyor:
+    // Kaleci her zaman 1, Defans/Orta Saha/Forvet ise katılımcı (takım) sayısı kadar.
+    function getDynamicCounts(teamCount) {
+        const n = Math.max(1, teamCount || 1);
+        return { GK: 1, DEF: n, MID: n, FWD: n };
+    }
+
+    const state = {
+        masterPlayers: [], roomCode: null, myId: null, myName: "", isMod: false,
+        room: null, colors: ['#3b82f6','#ef4444','#10b981','#eab308','#a855f7','#ec4899']
+    };
+
+    const el = (id) => document.getElementById(id);
+    const screens = { setup: el('setupScreen'), lobby: el('lobbyScreen'), auction: el('auctionScreen'), result: el('resultScreen') };
+    function showScreen(name) { Object.values(screens).forEach(s=>s.classList.remove('active')); screens[name].classList.add('active'); }
+
+    function playSound(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            if (type === 'bid') { osc.type='sine'; osc.frequency.setValueAtTime(500,ctx.currentTime); gain.gain.setValueAtTime(0.2,ctx.currentTime); gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.12); osc.start(); osc.stop(ctx.currentTime+0.12); }
+            else if (type === 'sold') { osc.type='square'; osc.frequency.setValueAtTime(300,ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(900,ctx.currentTime+0.3); gain.gain.setValueAtTime(0.2,ctx.currentTime); gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.3); osc.start(); osc.stop(ctx.currentTime+0.3); }
+        } catch(e) {}
+    }
+    function aiSpeak(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text); u.lang='tr-TR'; u.rate=1.05;
+            window.speechSynthesis.speak(u);
+        }
+    }
+
+    // --- Master veriden mevki ve reyting çıkarımı (esnek alan tanıma) ---
+    // Olası tüm alan adlarını dener; Transfermarkt tarzı İngilizce ve Türkçe mevki isimlerini kapsar.
+    function getRawPosition(p) {
+        return (p.mevki || p.pozisyon || p.position || p.pos || p.detayli_mevki || p.ana_mevki
+            || p.mevkii || p.role || p.Position || '').toString().trim();
+    }
+    function getCategory(p) {
+        const raw = getRawPosition(p).toLowerCase();
+        if (!raw) return 'MID';
+
+        // 1) Kaleci
+        if (/kaleci|kalesi|goalkeeper|\bgk\b/.test(raw)) return 'GK';
+
+        // 2) Defans (bek/stoper/libero/back/centre-back vb. — "kanat" kelimesinden ÖNCE kontrol edilir,
+        //    çünkü "kanat bek" defans, salt "kanat" ise forvet/kanat oyuncusu anlamına gelebilir)
+        if (/stoper|libero|defans|defender|\bback\b|bek\b|kanat ?bek|wing-?back|centre-?back|center-?back|\bcb\b|\brb\b|\blb\b|\bwb\b/.test(raw)) return 'DEF';
+
+        // 3) Forvet (santrafor/santrfor/forward/striker/winger/kanat vb.)
+        if (/santrafor|santrfor|forvet|forward|striker|winger|second striker|\bkanat\b|centre-?forward|center-?forward|\bst\b|\brw\b|\blw\b|\bcf\b/.test(raw)) return 'FWD';
+
+        // 4) Orta Saha
+        if (/orta ?saha|midfield|\bcm\b|\bdm\b|\bam\b|\bmf\b|\bcdm\b|\bcam\b/.test(raw)) return 'MID';
+
+        return 'MID'; // hiçbiri eşleşmezse güvenli varsayım
+    }
+    function getRating(p) {
+        const cand = [p.fc26_rating, p.rating, p.oyuncu_gucu, p.reyting, p.overall, p.guc, p.potansiyel];
+        for (const c of cand) { const n = parseFloat(c); if (!isNaN(n) && n > 0) return n; }
+        return null; // yoksa aşağıda price'a düşülür
+    }
+    function getEffectiveScore(p) {
+        const r = getRating(p);
+        if (r !== null) return r;
+        return (p.numericPrice || 0) / 2; // reyting yoksa piyasa değeri bazlı yaklaşık güç
+    }
+    function playerKey(p) { return (p.tam_isim||'?') + '|' + (p.su_anki_takim||''); }
+
+    // --- Sayfa yüklendiğinde master_players çek ---
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            state.masterPlayers = Object.values(window.PLAYERS_DATA || {});
+            if (state.masterPlayers.length > 0) {
+                el('lblDbCount').innerText = `Sistem Oyuncu Sayısı: ${state.masterPlayers.length} (Sabit Liste)`;
+                el('btnCreateRoom').disabled = false;
+            } else {
+                el('lblDbCount').innerText = 'Sistem Durumu: Oyuncu listesi boş';
+            }
+        } catch(e) {
+            el('lblDbCount').innerText = 'Oyuncu verisi yüklenemedi';
+            console.error(e);
+        }
+
+        const savedRoom = sessionStorage.getItem('aa11_roomCode');
+        const savedId = sessionStorage.getItem('aa11_myId');
+        const savedName = sessionStorage.getItem('aa11_myName');
+        const savedMod = sessionStorage.getItem('aa11_isMod') === '1';
+        if (savedRoom && savedId) {
+            state.roomCode = savedRoom; state.myId = savedId; state.myName = savedName; state.isMod = savedMod;
+            attachRoomListener();
+            startWatchdog();
+        }
+    });
+
+    function genCode() { return Math.random().toString(36).substring(2,8).toUpperCase(); }
+    function genId() { return 'p_' + Math.random().toString(36).substring(2,10); }
+
+    // --- ODA OLUŞTURMA (Moderatör) ---
+    el('btnCreateRoom').addEventListener('click', async () => {
+        const code = genCode();
+        const myId = genId();
+        const budget = parseInt(el('setupBudget').value) || 1500;
+        const biddingDurationMs = (parseInt(el('setupDuration').value) || 10) * 1000;
+        const modName = el('modName').value.trim() || 'Moderatör';
+
+        const roomData = {
+            status: 'lobby',
+            modId: myId,
+            budgetLimit: budget,
+            biddingDurationMs: biddingDurationMs,
+            dynamicCounts: null, // takımlar katıldıkça lobide canlı hesaplanır, başlarken kilitlenir
+            order: CATS,
+            currentCategoryIndex: 0,
+            usedIds: {},
+            roundNeeders: [],
+            currentItem: null,
+            players: {
+                [myId]: { name: modName, color: state.colors[0], isMod: true, budgetLeft: budget,
+                    squad: { GK:[], DEF:[], MID:[], FWD:[] }, filled: {GK:0,DEF:0,MID:0,FWD:0} }
+            },
+            log: []
+        };
+
+        await window.dbRefs.set(window.dbRefs.ref(window.db, `auction_rooms/${code}`), roomData);
+        state.roomCode = code; state.myId = myId; state.myName = modName; state.isMod = true;
+        sessionStorage.setItem('aa11_roomCode', code);
+        sessionStorage.setItem('aa11_myId', myId);
+        sessionStorage.setItem('aa11_myName', modName);
+        sessionStorage.setItem('aa11_isMod', '1');
+        attachRoomListener();
+        startWatchdog();
+    });
+
+    // --- ODAYA KATILMA ---
+    el('btnJoinRoom').addEventListener('click', async () => {
+        const code = el('inputRoomCode').value.trim().toUpperCase();
+        const name = el('playerName').value.trim();
+        if (!code || !name) { alert('Lütfen takım adı ve oda kodu girin.'); return; }
+
+        const snap = await window.dbRefs.get(window.dbRefs.ref(window.db, `auction_rooms/${code}`));
+        if (!snap.exists()) { alert('Oda bulunamadı.'); return; }
+        const room = snap.val();
+        if (room.status !== 'lobby') { alert('Bu yarışma zaten başlamış.'); return; }
+
+        const myId = genId();
+        const usedColors = Object.values(room.players||{}).map(p=>p.color);
+        const color = state.colors.find(c=>!usedColors.includes(c)) || '#64748b';
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${code}/players/${myId}`), {
+            name, color, isMod: false, budgetLeft: room.budgetLimit,
+            squad: { GK:[], DEF:[], MID:[], FWD:[] }, filled: {GK:0,DEF:0,MID:0,FWD:0}
+        });
+
+        state.roomCode = code; state.myId = myId; state.myName = name; state.isMod = false;
+        sessionStorage.setItem('aa11_roomCode', code);
+        sessionStorage.setItem('aa11_myId', myId);
+        sessionStorage.setItem('aa11_myName', name);
+        sessionStorage.setItem('aa11_isMod', '0');
+        attachRoomListener();
+        startWatchdog();
+    });
+
+    let modTimerInterval = null;
+
+    function attachRoomListener() {
+        window.dbRefs.onValue(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`), (snap) => {
+            if (!snap.exists()) return;
+            state.room = snap.val();
+            renderAll();
+        });
+    }
+
+    function renderAll() {
+        const room = state.room;
+        if (!room) return;
+
+        if (room.status === 'lobby') {
+            showScreen('lobby');
+            renderLobby(room);
+        } else if (room.status === 'running') {
+            showScreen('auction');
+            renderAuction(room);
+        } else if (room.status === 'finished') {
+            showScreen('result');
+            renderResult(room);
+        }
+    }
+
+    function renderLobby(room) {
+        el('lobbyTitle').innerText = `Oda Kodu: ${state.roomCode}`;
+        const teamCount = Object.keys(room.players||{}).length;
+        const c = getDynamicCounts(teamCount);
+        el('lobbyFormation').innerText = `1 KL - ${c.DEF} DEF - ${c.MID} ORT - ${c.FWD} FOR (${teamCount} takım)`;
+        el('lobbyBudget').innerText = room.budgetLimit;
+        const list = Object.entries(room.players||{});
+        el('lobbyListContainer').innerHTML = list.map(([id,p]) => `
+            <div class="lobby-player"><span style="color:${p.color}; font-weight:700;">${p.name}${p.isMod ? ' (Moderatör)' : ''}</span><span>Hazır</span></div>
+        `).join('');
+
+        if (state.isMod) {
+            el('btnStartAuction').style.display = 'block';
+            el('lobbyWaitText').style.display = 'none';
+            el('btnStartAuction').disabled = list.length < 2;
+            el('btnStartAuction').innerText = list.length < 2 ? 'En az 2 takım gerekli' : 'Açık Artırmayı Başlat';
+        } else {
+            el('btnStartAuction').style.display = 'none';
+            el('lobbyWaitText').style.display = 'block';
+        }
+    }
+
+    el('btnStartAuction').addEventListener('click', async () => {
+        const room = (await window.dbRefs.get(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`))).val();
+        const teamCount = Object.keys(room.players||{}).length;
+        const dynamicCounts = getDynamicCounts(teamCount);
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`), { status: 'running', dynamicCounts });
+        // İlk kategori için ilk turu başlat
+        setTimeout(() => { if (state.isMod) startCategoryRound(0); }, 400);
+    });
+
+    // --- MODERATÖR: yeni kategori/tur başlatma ---
+    async function startCategoryRound(catIndex) {
+        const room = (await window.dbRefs.get(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`))).val();
+        if (catIndex >= room.order.length) { await finishGame(room); return; }
+
+        const cat = room.order[catIndex];
+        const need = room.dynamicCounts[cat];
+        const neederIds = Object.entries(room.players).filter(([id,p]) => (p.filled[cat]||0) < need).map(([id]) => id);
+
+        if (neederIds.length === 0) { await startCategoryRound(catIndex+1); return; }
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`), {
+            currentCategoryIndex: catIndex, roundNeeders: neederIds
+        });
+        await drawNextCandidate(catIndex, neederIds, room.usedIds || {});
+    }
+
+    // Bir satışı oda nesnesine (curr) uygular: kadroya ekler, bütçeden düşer, log/usedIds/roundNeeders/currentItem günceller.
+    // Firebase transaction içinde kullanılmak üzere SAF (yan etkisiz, sadece verilen curr'ı değiştirip döndürür) tasarlandı.
+    function applySaleToRoom(curr, catIndex, player, winnerId, price, wasAuto) {
+        const winner = curr.players && curr.players[winnerId];
+        if (!winner) { curr.currentItem = null; return curr; } // geçersiz kazanan: sadece turu temizle
+
+        const cat = curr.order[catIndex];
+        const newSquad = [...((winner.squad && winner.squad[cat]) || []), player];
+        winner.squad = { ...(winner.squad || {}), [cat]: newSquad };
+        winner.filled = { ...(winner.filled || {}), [cat]: ((winner.filled && winner.filled[cat]) || 0) + 1 };
+        winner.budgetLeft = (winner.budgetLeft || 0) - price;
+        curr.players[winnerId] = winner;
+
+        const key = playerKey(player).replace(/[.#$\[\]\/]/g,'_');
+        curr.usedIds = { ...(curr.usedIds || {}), [key]: true };
+
+        const logEntry = { text: `${player.tam_isim} → ${winner.name} (€${price.toFixed(0)}m)${wasAuto ? ' [Otomatik]' : ''}`, ts: Date.now() };
+        curr.log = [logEntry, ...(curr.log || [])].slice(0, 30);
+
+        curr.roundNeeders = (curr.roundNeeders || []).filter(id => id !== winnerId);
+        curr.currentItem = null;
+        return curr;
+    }
+
+    // --- MODERATÖR: sıradaki adayı çek ve artırmayı başlat / tek kişi kaldıysa otomatik ver ---
+    async function drawNextCandidate(catIndex, neederIds, usedIds) {
+        const room = (await window.dbRefs.get(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`))).val();
+        const cat = room.order[catIndex];
+
+        const pool = state.masterPlayers
+            .filter(p => getCategory(p) === cat)
+            .filter(p => !usedIds[playerKey(p)])
+            .sort((a,b) => getEffectiveScore(b) - getEffectiveScore(a));
+
+        if (pool.length === 0) {
+            // Bu mevkide havuz tükendi, sıradaki kategoriye geç
+            await startCategoryRound(catIndex+1);
+            return;
+        }
+
+        const candidate = pool[0];
+
+        if (neederIds.length === 1) {
+            // Tek kalan takıma otomatik ver (ederi fiyatından) — atomik transaction ile
+            const roomRef = window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`);
+            let saleApplied = false;
+            const result = await window.dbRefs.runTransaction(roomRef, (curr) => {
+                saleApplied = false;
+                if (!curr) return curr;
+                const key = playerKey(candidate).replace(/[.#$\[\]\/]/g,'_');
+                if (curr.usedIds && curr.usedIds[key]) return curr; // zaten satılmış, tekrar işleme
+                saleApplied = true;
+                return applySaleToRoom(curr, catIndex, candidate, neederIds[0], getEffectiveScore(candidate), true);
+            });
+            if (!result.committed || !saleApplied) return;
+            playSound('sold');
+            const finalRoom = result.snapshot.val();
+            if (!finalRoom) return;
+            if ((finalRoom.roundNeeders||[]).length === 0) {
+                await startCategoryRound(catIndex + 1);
+            } else {
+                await drawNextCandidate(catIndex, finalRoom.roundNeeders, finalRoom.usedIds || {});
+            }
+            return;
+        }
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`), {
+            currentItem: {
+                player: candidate, currentBid: 0, currentBidderId: null,
+                lastBidTs: Date.now(), eligible: neederIds
+            }
+        });
+        // Not: satışı sonlandıran kontrol artık ayrı bir "bekçi" döngüsünde (startWatchdog) sürekli çalışıyor.
+    }
+
+    let isFinalizing = false; // aynı satışın iki kez işlenmesini engelleyen kilit (bu cihaz için)
+
+    // --- HERKESİN cihazında çalışan kesintisiz bekçi döngüsü ---
+    // ÖNEMLİ DÜZELTME: Eskiden bu kontrol SADECE moderatörün cihazında çalışıyordu.
+    // Moderatörün telefonu/sekmesi arka plana düşünce (ekran kilidi, sekme değişimi vb.)
+    // tarayıcılar zamanlayıcıları durdurduğu için süre dolsa bile satış hiç gerçekleşmiyordu.
+    // Artık odadaki HERKESİN cihazı bu kontrolü çalıştırıyor; kimin cihazı aktifse o tamamlıyor.
+    // Aynı anda birden fazla cihaz süresi dolan turu görse bile, aşağıdaki Firebase transaction
+    // sayesinde SADECE BİRİ turu "ele geçirip" satışı gerçekleştiriyor, çift satış olmuyor.
+    function startWatchdog() {
+        if (modTimerInterval) return; // zaten çalışıyor
+        modTimerInterval = setInterval(async () => {
+            if (isFinalizing) return;
+            const room = state.room;
+            if (!room || room.status !== 'running' || !room.currentItem) return;
+            const duration = room.biddingDurationMs || 10000;
+            const elapsed = Date.now() - room.currentItem.lastBidTs;
+            if (elapsed < duration) return;
+
+            isFinalizing = true;
+            try {
+                await claimAndFinalizeExpiredItem();
+            } catch(e) {
+                console.error('Bekçi döngüsü hata:', e);
+            } finally {
+                isFinalizing = false;
+            }
+        }, 500);
+    }
+
+    // Süresi dolan turu ATOMİK şekilde tamamlar: ihalenin kapatılması ile paranın düşülüp
+    // oyuncunun kadroya eklenmesi ARTIK TEK BİR transaction'da, hep birlikte veya hiç olmuyor.
+    // ÖNEMLİ DÜZELTME: Eskiden ihale kaydı önce ayrı bir transaction'la siliniyor, para/kadro
+    // güncellemesi ayrı bir update() ile SONRA yapılıyordu. Bu iki adım arasında o cihaz
+    // (ekran kilidi, sekme arkaya düşmesi, ağ kopması vb.) yarıda kalırsa ihale "satılmış"
+    // görünüyor ama kimsenin bütçesi düşmüyor, oyuncu kimsenin kadrosuna girmiyordu.
+    // Şimdi her şey tek transaction'da yapılıyor: ya tamamı uygulanır, ya da hiçbiri uygulanmaz
+    // ve ihale açık kalmaya devam eder — bir sonraki cihaz süre kontrolünde tekrar dener.
+    async function claimAndFinalizeExpiredItem() {
+        const roomCode = state.roomCode;
+        const roomRef = window.dbRefs.ref(window.db, `auction_rooms/${roomCode}`);
+
+        let saleApplied = false; // her deneme (retry) başına sıfırlanıp sadece gerçek satışta true olur
+        const result = await window.dbRefs.runTransaction(roomRef, (curr) => {
+            saleApplied = false;
+            if (!curr || curr.status !== 'running' || !curr.currentItem) return curr; // yapacak iş yok
+            const duration = curr.biddingDurationMs || 10000;
+            if (Date.now() - curr.currentItem.lastBidTs < duration) return curr; // süre henüz dolmamış
+
+            const item = curr.currentItem;
+            let winnerId = item.currentBidderId;
+            let price = item.currentBid;
+            const wasAuto = !winnerId;
+
+            if (!winnerId) {
+                // Hiç teklif gelmedi: bütçesi en yüksek uygun takıma ederi fiyatından ver
+                const eligibleIds = Array.isArray(item.eligible) ? item.eligible : Object.values(item.eligible || {});
+                const eligiblePlayers = Object.entries(curr.players || {}).filter(([id]) => eligibleIds.includes(id));
+                if (eligiblePlayers.length === 0) { curr.currentItem = null; saleApplied = true; return curr; }
+                eligiblePlayers.sort((a,b) => b[1].budgetLeft - a[1].budgetLeft);
+                winnerId = eligiblePlayers[0][0];
+                price = getEffectiveScore(item.player);
+            }
+
+            saleApplied = true;
+            return applySaleToRoom(curr, curr.currentCategoryIndex, item.player, winnerId, price, wasAuto);
+        });
+
+        if (!result.committed || !saleApplied) return; // başka bir cihaz zaten hallettti ya da süre dolmamış
+        const finalRoom = result.snapshot.val();
+        if (!finalRoom) return;
+
+        playSound('sold');
+        const catIndex = finalRoom.currentCategoryIndex;
+        if ((finalRoom.roundNeeders||[]).length === 0) {
+            await startCategoryRound(catIndex + 1);
+        } else {
+            await drawNextCandidate(catIndex, finalRoom.roundNeeders, finalRoom.usedIds || {});
+        }
+    }
+
+    async function finishGame(room) {
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`), { status: 'finished' });
+        if (modTimerInterval) { clearInterval(modTimerInterval); modTimerInterval = null; }
+    }
+
+    // --- TEKLİF VER (herhangi bir uygun takım) ---
+    window.placeBid = async function(increment) {
+        const room = state.room;
+        if (!room || !room.currentItem) return;
+        const item = room.currentItem;
+        if (!item.eligible.includes(state.myId)) return;
+        const me = room.players[state.myId];
+        const newBid = item.currentBid + increment;
+        if (newBid > me.budgetLeft) { alert('Bütçeniz yetersiz.'); return; }
+
+        await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}/currentItem`), {
+            currentBid: newBid, currentBidderId: state.myId, lastBidTs: Date.now()
+        });
+        playSound('bid');
+    };
+
+    // --- ARTIRMA EKRANI RENDER ---
+    let timerRafId = null;
+    function renderAuction(room) {
+        const catIndex = room.currentCategoryIndex || 0;
+        const cat = room.order[catIndex];
+        const need = room.dynamicCounts[cat];
+        const doneCount = need - (room.roundNeeders||[]).length;
+        el('roundInfo').innerText = `${CAT_LABEL[cat]} Turu — Sırada: ${doneCount+1}/${need}`;
+
+        const item = room.currentItem;
+        if (item) {
+            const p = item.player;
+            el('cardPos').innerText = CAT_LABEL[cat];
+            const rawPos = getRawPosition(p);
+            el('cardPosRaw').innerText = rawPos ? `(ham veri: ${rawPos})` : '(mevki verisi bulunamadı, varsayılan atandı)';
+            el('cardName').innerText = p.tam_isim || 'Bilinmiyor';
+            el('cardSub').innerText = p.su_anki_takim || 'Serbest';
+            el('cardLeague').innerText = p.su_anki_lig || 'Diğer';
+            el('cardNat').innerText = p.uyruk || '-';
+            const r = getRating(p);
+            el('cardRating').innerText = r !== null ? r : `~${getEffectiveScore(p).toFixed(0)} (Fiyat Bazlı)`;
+            el('cardPrice').innerText = p.numericPrice ? `€${p.numericPrice}m` : '-';
+
+            el('bidAmount').innerText = `€${item.currentBid}m`;
+            if (item.currentBidderId && room.players[item.currentBidderId]) {
+                el('bidLeader').innerHTML = `En yüksek teklif: <b style="color:${room.players[item.currentBidderId].color}">${room.players[item.currentBidderId].name}</b>`;
+            } else {
+                el('bidLeader').innerText = 'Henüz teklif yok';
+            }
+
+            const duration = room.biddingDurationMs || 10000;
+            const elapsed = Date.now() - item.lastBidTs;
+            const remaining = Math.max(0, duration - elapsed);
+            const pct = (remaining/duration)*100;
+            const bar = el('timerBar');
+            bar.style.width = pct + '%';
+            bar.classList.toggle('danger', remaining < 3000);
+
+            const amEligible = item.eligible.includes(state.myId);
+            el('bidButtons').style.display = amEligible ? 'flex' : 'none';
+            el('notEligibleMsg').style.display = amEligible ? 'none' : 'block';
+            if (!amEligible) el('notEligibleMsg').innerText = 'Bu turda bu mevki için sıra sizde değil.';
+
+            if (!timerRafId) {
+                timerRafId = setInterval(() => { if (state.room && state.room.currentItem) renderAuction(state.room); }, 250);
+            }
+        } else {
+            el('cardName').innerText = 'Sıradaki oyuncu hazırlanıyor...';
+            el('bidButtons').style.display = 'none';
+            el('notEligibleMsg').style.display = 'none';
+        }
+
+        el('teamsGrid').innerHTML = Object.entries(room.players).map(([id,p]) => `
+            <div class="team-box" style="border-top-color:${p.color};">
+                <div style="display:flex; justify-content:space-between;"><b>${p.name}</b><span>€${p.budgetLeft.toFixed(0)}m</span></div>
+                <div class="team-slots">
+                    ${CATS.map(c => Array.from({length: room.dynamicCounts[c]}).map((_,i) => `
+                        <div class="slot-pip ${ (p.filled[c]||0) > i ? 'filled' : '' }" title="${CAT_LABEL[c]}">${c[0]}</div>
+                    `).join('')).join('')}
+                </div>
+            </div>
+        `).join('');
+
+        el('saleLog').innerHTML = (room.log||[]).map(l => `<div>${l.text}</div>`).join('') || '<div>Henüz satış yok.</div>';
+
+        if (state.isMod) { el('btnEndAuction').style.display = 'block'; } else { el('btnEndAuction').style.display = 'none'; }
+    }
+
+    el('btnEndAuction').addEventListener('click', async () => {
+        if (confirm('Yarışmayı erken sonlandırmak istediğinize emin misiniz?')) {
+            if (modTimerInterval) { clearInterval(modTimerInterval); modTimerInterval = null; }
+            await window.dbRefs.update(window.dbRefs.ref(window.db, `auction_rooms/${state.roomCode}`), { status: 'finished' });
+        }
+    });
+
+    function renderResult(room) {
+        const c = room.dynamicCounts || getDynamicCounts(Object.keys(room.players||{}).length);
+        const totalNeeded = c.GK + c.DEF + c.MID + c.FWD;
+        const list = Object.values(room.players).map(p => {
+            const all = CATS.flatMap(c => p.squad[c]||[]);
+            const avg = all.length ? all.reduce((s,pl)=>s+getEffectiveScore(pl),0)/all.length : 0;
+            return { ...p, avgRating: avg, squadCount: all.length };
+        }).sort((a,b) => b.avgRating - a.avgRating);
+
+        el('resultList').innerHTML = list.map((p, idx) => `
+            <div class="result-row" style="border-left-color:${p.color};">
+                <div>
+                    <div><b>${idx+1}. ${p.name}</b></div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">${p.squadCount}/${totalNeeded} oyuncu kadroda</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="color:var(--gold); font-weight:800; font-size:1.1rem;">${p.avgRating.toFixed(1)} Ort. Güç</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Kalan Bütçe: €${p.budgetLeft.toFixed(0)}m</div>
+                </div>
+            </div>
+        `).join('');
+
+        if (list.length) aiSpeak(`Yarışmanın kazananı ${list[0].name}`);
+        sessionStorage.clear();
+    }
+</script>
+</body>
+</html>
